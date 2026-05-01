@@ -62,42 +62,64 @@
             color: rgba(255, 255, 255, 0.9);
             font-size: 16px;
         }
-        .groups-container {
+        .group-nav {
             display: flex;
-            flex-wrap: nowrap;
-            gap: 30px;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        .group-nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .group-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .groups-container {
+            columns: 3;
+            column-gap: 30px;
         }
         
-        .masonry-col {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
+        .group-section {
+            width: 100%;
+            break-inside: avoid;
+            margin-bottom: 30px;
         }
         
         .group-section {
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 25px;
+            border-radius: 16px;
+            padding: 18px;
             border: 1px solid rgba(255, 255, 255, 0.25);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
             animation: fadeInUp 0.8s ease-out;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .group-section:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
             background: rgba(255, 255, 255, 0.28);
             border-color: rgba(255, 255, 255, 0.35);
         }
         .group-title {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
             position: relative;
         }
         
@@ -160,7 +182,7 @@
         .chat-list {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 12px;
         }
         .chat-item {
             background: rgba(255, 255, 255, 0.15);
@@ -224,7 +246,7 @@
         .messages {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
         }
         .message {
             display: flex;
@@ -494,10 +516,10 @@
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 22px;
+            border-radius: 16px;
+            padding: 18px;
             border: 1px solid rgba(255, 255, 255, 0.25);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
         }
         
         .group-fullscreen-item .chat-item {
@@ -556,11 +578,17 @@
             }
         }
         @media (max-width: 768px) {
-            .groups-container {
-                gap: 20px;
+            .group-nav {
+                gap: 8px;
+                margin-bottom: 20px;
             }
-            .masonry-col {
-                gap: 20px;
+            .group-nav-btn {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+            .groups-container {
+                columns: 1;
+                column-gap: 20px;
             }
             .container {
                 padding: 15px;
@@ -576,7 +604,8 @@
                 visibility: visible;
             }
             .group-section {
-                padding: 20px;
+                padding: 15px;
+                margin-bottom: 15px;
             }
             .fullscreen-btn {
                 opacity: 1;
@@ -605,10 +634,8 @@
         
         @media (min-width: 769px) and (max-width: 1024px) {
             .groups-container {
-                gap: 25px;
-            }
-            .masonry-col {
-                gap: 25px;
+                columns: 2;
+                column-gap: 25px;
             }
         }
     </style>
@@ -686,96 +713,98 @@
         if (!$hasChats) {
             echo '<div class="no-chats">暂无对话内容，请登录后台添加</div>';
         } else {
-            echo '<div class="groups-container">';
-            echo '<div class="masonry-col" data-col="0"></div>';
-            echo '<div class="masonry-col" data-col="1"></div>';
-            echo '<div class="masonry-col" data-col="2"></div>';
+            // 输出分组导航
+            echo '<div class="group-nav">';
+            foreach ($groupedChats as $groupId => $groupData) {
+                if (empty($groupData['chats'])) {
+                    continue;
+                }
+                echo '<button class="group-nav-btn" onclick="openGroupFullscreen(\'' . htmlspecialchars($groupData['group']['id'], ENT_QUOTES) . '\', \'' . htmlspecialchars($groupData['group']['name'], ENT_QUOTES) . '\')">';
+                echo htmlspecialchars($groupData['group']['name']);
+                echo '</button>';
+            }
             echo '</div>';
             
-            $groupCards = [];
+            echo '<div class="groups-container">';
             $groupIndex = 0;
             foreach ($groupedChats as $groupId => $groupData) {
                 if (empty($groupData['chats'])) {
                     continue;
                 }
                 $groupIndex++;
-                $cardHtml = '<div class="group-section" id="group-' . htmlspecialchars($groupData['group']['id']) . '" style="animation-delay: ' . ($groupIndex * 0.1) . 's">';
-                $cardHtml .= '<div class="group-title">';
-                $cardHtml .= '<h2>' . htmlspecialchars($groupData['group']['name']) . ' <span class="chat-count-inline">' . count($groupData['chats']) . ' 条</span></h2>';
-                $cardHtml .= '<button class="fullscreen-btn" onclick="openGroupFullscreen(\'' . htmlspecialchars($groupData['group']['id'], ENT_QUOTES) . '\', \'' . htmlspecialchars($groupData['group']['name'], ENT_QUOTES) . '\')" title="全屏查看">⛶</button>';
-                $cardHtml .= '</div>';
-                $cardHtml .= '<div class="chat-list">';
+                echo '<div class="group-section" id="group-' . htmlspecialchars($groupData['group']['id']) . '" style="animation-delay: ' . ($groupIndex * 0.1) . 's">';
+                echo '<div class="group-title">';
+                echo '<h2>' . htmlspecialchars($groupData['group']['name']) . ' <span class="chat-count-inline">' . count($groupData['chats']) . ' 条</span></h2>';
+                echo '<button class="fullscreen-btn" onclick="openGroupFullscreen(\'' . htmlspecialchars($groupData['group']['id'], ENT_QUOTES) . '\', \'' . htmlspecialchars($groupData['group']['name'], ENT_QUOTES) . '\')" title="全屏查看">⛶</button>';
+                echo '</div>';
+                echo '<div class="chat-list">';
 
                 $chatIndex = 0;
                 foreach ($groupData['chats'] as $chat) {
                     $chatIndex++;
                     $hasMessages = !empty($chat['messages']) && is_array($chat['messages']);
 
-                    $cardHtml .= '<div class="chat-item" style="animation-delay: ' . ($groupIndex * 0.1 + $chatIndex * 0.05) . 's">';
-                    $cardHtml .= '<div class="chat-header">';
-                    $cardHtml .= '<div class="avatar' . (!empty($chat['sender']) && $chat['sender'] === 'me' ? ' me' : '') . '">';
-                    $cardHtml .= mb_substr($chat['name'], 0, 1);
-                    $cardHtml .= '</div>';
-                    $cardHtml .= '<div class="chat-info">';
-                    $cardHtml .= '<div class="chat-name">' . htmlspecialchars($chat['name']) . '</div>';
-                    $cardHtml .= '<div class="chat-time">' . date('Y-m-d H:i', $chat['timestamp']) . '</div>';
-                    $cardHtml .= '</div>';
-                    $cardHtml .= '</div>';
+                    echo '<div class="chat-item" style="animation-delay: ' . ($groupIndex * 0.1 + $chatIndex * 0.05) . 's">';
+                    echo '<div class="chat-header">';
+                    echo '<div class="avatar' . (!empty($chat['sender']) && $chat['sender'] === 'me' ? ' me' : '') . '">';
+                    echo mb_substr($chat['name'], 0, 1);
+                    echo '</div>';
+                    echo '<div class="chat-info">';
+                    echo '<div class="chat-name">' . htmlspecialchars($chat['name']) . '</div>';
+                    echo '<div class="chat-time">' . date('Y-m-d H:i', $chat['timestamp']) . '</div>';
+                    echo '</div>';
+                    echo '</div>';
 
-                    $cardHtml .= '<div class="messages">';
+                    echo '<div class="messages">';
 
                     if ($hasMessages) {
                         foreach ($chat['messages'] as $msgIndex => $msg) {
                             $isMe = !empty($msg['sender']) && $msg['sender'] === 'me';
-                            $cardHtml .= '<div class="message ' . ($isMe ? 'me' : 'customer') . '">';
-                            $cardHtml .= '<div class="message-wrapper">';
-                            $cardHtml .= '<button class="copy-btn" onclick="copyMessage(this, \'' . addslashes(htmlspecialchars($msg['content'])) . '\')" title="复制内容">📋</button>';
-                            $cardHtml .= '<div class="message-content">';
-                            $cardHtml .= '<div class="message-text">' . nl2br(htmlspecialchars($msg['content'])) . '</div>';
+                            echo '<div class="message ' . ($isMe ? 'me' : 'customer') . '">';
+                            echo '<div class="message-wrapper">';
+                            echo '<button class="copy-btn" onclick="copyMessage(this, \'' . addslashes(htmlspecialchars($msg['content'])) . '\')" title="复制内容">📋</button>';
+                            echo '<div class="message-content">';
+                            echo '<div class="message-text">' . nl2br(htmlspecialchars($msg['content'])) . '</div>';
                             if (!empty($msg['images']) && is_array($msg['images'])) {
-                                $cardHtml .= '<div class="message-images">';
+                                echo '<div class="message-images">';
                                 foreach ($msg['images'] as $image) {
-                                    $cardHtml .= '<img src="' . PHOTOS_URL . htmlspecialchars($image) . '" class="message-image" onclick="openModal(this.src)">';
+                                    echo '<img src="' . PHOTOS_URL . htmlspecialchars($image) . '" class="message-image" onclick="openModal(this.src)">';
                                 }
-                                $cardHtml .= '</div>';
+                                echo '</div>';
                             }
-                            $cardHtml .= '<div class="message-time">' . date('H:i', $msg['timestamp']) . '</div>';
-                            $cardHtml .= '</div>';
-                            $cardHtml .= '</div>';
-                            $cardHtml .= '</div>';
+                            echo '<div class="message-time">' . date('H:i', $msg['timestamp']) . '</div>';
+                            echo '</div>';
+                            echo '</div>';
+                            echo '</div>';
                         }
                     } else {
                         $isMe = !empty($chat['sender']) && $chat['sender'] === 'me';
-                        $cardHtml .= '<div class="message ' . ($isMe ? 'me' : 'customer') . '">';
-                        $cardHtml .= '<div class="message-wrapper">';
-                        $cardHtml .= '<button class="copy-btn" onclick="copyMessage(this, \'' . addslashes(htmlspecialchars($chat['content'])) . '\')" title="复制内容">📋</button>';
-                        $cardHtml .= '<div class="message-content">';
-                        $cardHtml .= '<div class="message-text">' . nl2br(htmlspecialchars($chat['content'])) . '</div>';
+                        echo '<div class="message ' . ($isMe ? 'me' : 'customer') . '">';
+                        echo '<div class="message-wrapper">';
+                        echo '<button class="copy-btn" onclick="copyMessage(this, \'' . addslashes(htmlspecialchars($chat['content'])) . '\')" title="复制内容">📋</button>';
+                        echo '<div class="message-content">';
+                        echo '<div class="message-text">' . nl2br(htmlspecialchars($chat['content'])) . '</div>';
                         if (!empty($chat['images']) && is_array($chat['images'])) {
-                            $cardHtml .= '<div class="message-images">';
+                            echo '<div class="message-images">';
                             foreach ($chat['images'] as $image) {
-                                $cardHtml .= '<img src="' . PHOTOS_URL . htmlspecialchars($image) . '" class="message-image" onclick="openModal(this.src)">';
+                                echo '<img src="' . PHOTOS_URL . htmlspecialchars($image) . '" class="message-image" onclick="openModal(this.src)">';
                             }
-                            $cardHtml .= '</div>';
+                            echo '</div>';
                         }
-                        $cardHtml .= '<div class="message-time">' . date('H:i', $chat['timestamp']) . '</div>';
-                        $cardHtml .= '</div>';
-                        $cardHtml .= '</div>';
-                        $cardHtml .= '</div>';
+                        echo '<div class="message-time">' . date('H:i', $chat['timestamp']) . '</div>';
+                        echo '</div>';
+                        echo '</div>';
+                        echo '</div>';
                     }
 
-                    $cardHtml .= '</div>';
-                    $cardHtml .= '</div>';
+                    echo '</div>';
+                    echo '</div>';
                 }
 
-                $cardHtml .= '</div>';
-                $cardHtml .= '</div>';
-                $groupCards[] = $cardHtml;
+                echo '</div>';
+                echo '</div>';
             }
-            
-            echo '<script>';
-            echo 'const groupCards = ' . json_encode($groupCards) . ';';
-            echo '</script>';
+            echo '</div>';
         }
         ?>
 
@@ -897,60 +926,6 @@
             }
         });
         
-        function applyMasonry(cards, containerSelector, colCount) {
-            const container = document.querySelector(containerSelector);
-            if (!container) return;
-            
-            container.innerHTML = '';
-            
-            const cols = [];
-            for (let i = 0; i < colCount; i++) {
-                const col = document.createElement('div');
-                col.className = 'masonry-col';
-                col.style.gap = '30px';
-                col.style.display = 'flex';
-                col.style.flexDirection = 'column';
-                col.style.flex = '1';
-                cols.push(col);
-                container.appendChild(col);
-            }
-            
-            cards.forEach((cardHtml, index) => {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = cardHtml;
-                const card = tempDiv.firstElementChild;
-                
-                let minCol = 0;
-                let minHeight = cols[0].offsetHeight;
-                for (let i = 1; i < cols.length; i++) {
-                    if (cols[i].offsetHeight < minHeight) {
-                        minHeight = cols[i].offsetHeight;
-                        minCol = i;
-                    }
-                }
-                
-                cols[minCol].appendChild(card);
-            });
-        }
-        
-        function getColCount() {
-            if (window.innerWidth <= 768) return 1;
-            if (window.innerWidth <= 1024) return 2;
-            return 3;
-        }
-        
-        window.addEventListener('load', function() {
-            if (typeof groupCards !== 'undefined' && groupCards.length > 0) {
-                applyMasonry(groupCards, '.groups-container', getColCount());
-            }
-            
-            window.addEventListener('resize', function() {
-                if (typeof groupCards !== 'undefined' && groupCards.length > 0) {
-                    applyMasonry(groupCards, '.groups-container', getColCount());
-                }
-            });
-        });
-        
         const originalOpenGroupFullscreen = openGroupFullscreen;
         openGroupFullscreen = function(groupId, groupName) {
             const groupElement = document.getElementById('group-' + groupId);
@@ -964,15 +939,19 @@
             const bodyContainer = document.getElementById('groupFullscreenBody');
             bodyContainer.innerHTML = '';
             
-            const chatCards = [];
+            const colCount = window.innerWidth <= 768 ? 1 : (window.innerWidth <= 1024 ? 2 : 3);
+            const gridContainer = document.createElement('div');
+            gridContainer.style.cssText = 'columns: ' + colCount + '; column-gap: 25px;';
+            
             chatItems.forEach((item, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'group-fullscreen-item';
+                wrapper.style.cssText = 'break-inside: avoid; margin-bottom: 25px;';
                 wrapper.innerHTML = item.outerHTML;
-                chatCards.push(wrapper.outerHTML);
+                gridContainer.appendChild(wrapper);
             });
             
-            applyMasonry(chatCards, '.group-fullscreen-body', getColCount());
+            bodyContainer.appendChild(gridContainer);
             
             document.getElementById('groupFullscreenModal').classList.add('active');
             document.body.style.overflow = 'hidden';

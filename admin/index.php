@@ -24,15 +24,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $groupId = $_POST['group_id'];
                 $images = [];
 
-                if (!empty($_FILES['photos']['name'][0])) {
-                    foreach ($_FILES['photos']['name'] as $key => $fileName) {
-                        if ($_FILES['photos']['error'][$key] === UPLOAD_ERR_OK) {
+                if (isset($_FILES['photos']) && !empty($_FILES['photos']['tmp_name'])) {
+                    $fileCount = is_array($_FILES['photos']['name']) ? count($_FILES['photos']['name']) : 1;
+                    for ($key = 0; $key < $fileCount; $key++) {
+                        if (is_array($_FILES['photos']['name'])) {
+                            $error = $_FILES['photos']['error'][$key];
+                            $tmpName = $_FILES['photos']['tmp_name'][$key];
+                            $fileName = $_FILES['photos']['name'][$key];
+                            $fileType = $_FILES['photos']['type'][$key];
+                            $fileSize = $_FILES['photos']['size'][$key];
+                        } else {
+                            $error = $_FILES['photos']['error'];
+                            $tmpName = $_FILES['photos']['tmp_name'];
+                            $fileName = $_FILES['photos']['name'];
+                            $fileType = $_FILES['photos']['type'];
+                            $fileSize = $_FILES['photos']['size'];
+                        }
+                        
+                        if ($error === UPLOAD_ERR_OK && !empty($tmpName)) {
                             $file = [
-                                'name' => $_FILES['photos']['name'][$key],
-                                'type' => $_FILES['photos']['type'][$key],
-                                'tmp_name' => $_FILES['photos']['tmp_name'][$key],
-                                'error' => $_FILES['photos']['error'][$key],
-                                'size' => $_FILES['photos']['size'][$key]
+                                'name' => $fileName,
+                                'type' => $fileType,
+                                'tmp_name' => $tmpName,
+                                'error' => $error,
+                                'size' => $fileSize
                             ];
                             $uploaded = uploadPhoto($file);
                             if ($uploaded) {
@@ -51,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
 
                 if (saveChat($chatData)) {
-                    $message = '对话添加成功';
+                    $message = '对话添加成功，图片数: ' . count($images);
                 } else {
                     $message = '添加失败，请重试';
                     $messageType = 'error';
@@ -68,16 +83,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $msgSender = $_POST['sender_' . $i];
                     $msgContent = $_POST['content_' . $i];
                     $msgImages = [];
+                    $fileField = 'photos_' . $i;
                     
-                    if (!empty($_FILES['photos_' . $i]['name'][0])) {
-                        foreach ($_FILES['photos_' . $i]['name'] as $key => $fileName) {
-                            if ($_FILES['photos_' . $i]['error'][$key] === UPLOAD_ERR_OK) {
+                    if (isset($_FILES[$fileField]) && !empty($_FILES[$fileField]['tmp_name'])) {
+                        $fileCount = is_array($_FILES[$fileField]['name']) ? count($_FILES[$fileField]['name']) : 1;
+                        for ($key = 0; $key < $fileCount; $key++) {
+                            if (is_array($_FILES[$fileField]['name'])) {
+                                $error = $_FILES[$fileField]['error'][$key];
+                                $tmpName = $_FILES[$fileField]['tmp_name'][$key];
+                                $fileName = $_FILES[$fileField]['name'][$key];
+                                $fileType = $_FILES[$fileField]['type'][$key];
+                                $fileSize = $_FILES[$fileField]['size'][$key];
+                            } else {
+                                $error = $_FILES[$fileField]['error'];
+                                $tmpName = $_FILES[$fileField]['tmp_name'];
+                                $fileName = $_FILES[$fileField]['name'];
+                                $fileType = $_FILES[$fileField]['type'];
+                                $fileSize = $_FILES[$fileField]['size'];
+                            }
+                            
+                            if ($error === UPLOAD_ERR_OK && !empty($tmpName)) {
                                 $file = [
-                                    'name' => $_FILES['photos_' . $i]['name'][$key],
-                                    'type' => $_FILES['photos_' . $i]['type'][$key],
-                                    'tmp_name' => $_FILES['photos_' . $i]['tmp_name'][$key],
-                                    'error' => $_FILES['photos_' . $i]['error'][$key],
-                                    'size' => $_FILES['photos_' . $i]['size'][$key]
+                                    'name' => $fileName,
+                                    'type' => $fileType,
+                                    'tmp_name' => $tmpName,
+                                    'error' => $error,
+                                    'size' => $fileSize
                                 ];
                                 $uploaded = uploadPhoto($file);
                                 if ($uploaded) {
@@ -139,15 +170,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $existingImages = !empty($_POST['existing_images']) ? json_decode($_POST['existing_images'], true) : [];
                         $newImages = [];
                         
-                        if (!empty($_FILES['photos']['name'][0])) {
-                            foreach ($_FILES['photos']['name'] as $key => $fileName) {
-                                if ($_FILES['photos']['error'][$key] === UPLOAD_ERR_OK) {
+                        if (isset($_FILES['photos']) && !empty($_FILES['photos']['tmp_name'])) {
+                            $fileCount = is_array($_FILES['photos']['name']) ? count($_FILES['photos']['name']) : 1;
+                            for ($key = 0; $key < $fileCount; $key++) {
+                                if (is_array($_FILES['photos']['name'])) {
+                                    $error = $_FILES['photos']['error'][$key];
+                                    $tmpName = $_FILES['photos']['tmp_name'][$key];
+                                    $fileName = $_FILES['photos']['name'][$key];
+                                    $fileType = $_FILES['photos']['type'][$key];
+                                    $fileSize = $_FILES['photos']['size'][$key];
+                                } else {
+                                    $error = $_FILES['photos']['error'];
+                                    $tmpName = $_FILES['photos']['tmp_name'];
+                                    $fileName = $_FILES['photos']['name'];
+                                    $fileType = $_FILES['photos']['type'];
+                                    $fileSize = $_FILES['photos']['size'];
+                                }
+                                
+                                if ($error === UPLOAD_ERR_OK && !empty($tmpName)) {
                                     $file = [
-                                        'name' => $_FILES['photos']['name'][$key],
-                                        'type' => $_FILES['photos']['type'][$key],
-                                        'tmp_name' => $_FILES['photos']['tmp_name'][$key],
-                                        'error' => $_FILES['photos']['error'][$key],
-                                        'size' => $_FILES['photos']['size'][$key]
+                                        'name' => $fileName,
+                                        'type' => $fileType,
+                                        'tmp_name' => $tmpName,
+                                        'error' => $error,
+                                        'size' => $fileSize
                                     ];
                                     $uploaded = uploadPhoto($file);
                                     if ($uploaded) {
@@ -194,16 +240,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $msgTimestamp = isset($_POST['msg_timestamp_' . $i]) ? $_POST['msg_timestamp_' . $i] : time() + $i;
                             $existingImages = !empty($_POST['msg_existing_images_' . $i]) ? json_decode($_POST['msg_existing_images_' . $i], true) : [];
                             $msgImages = $existingImages;
+                            $fileField = 'msg_photos_' . $i;
                             
-                            if (!empty($_FILES['msg_photos_' . $i]['name'][0])) {
-                                foreach ($_FILES['msg_photos_' . $i]['name'] as $key => $fileName) {
-                                    if ($_FILES['msg_photos_' . $i]['error'][$key] === UPLOAD_ERR_OK) {
+                            if (isset($_FILES[$fileField]) && !empty($_FILES[$fileField]['tmp_name'])) {
+                                $fileCount = is_array($_FILES[$fileField]['name']) ? count($_FILES[$fileField]['name']) : 1;
+                                for ($key = 0; $key < $fileCount; $key++) {
+                                    if (is_array($_FILES[$fileField]['name'])) {
+                                        $error = $_FILES[$fileField]['error'][$key];
+                                        $tmpName = $_FILES[$fileField]['tmp_name'][$key];
+                                        $fileName = $_FILES[$fileField]['name'][$key];
+                                        $fileType = $_FILES[$fileField]['type'][$key];
+                                        $fileSize = $_FILES[$fileField]['size'][$key];
+                                    } else {
+                                        $error = $_FILES[$fileField]['error'];
+                                        $tmpName = $_FILES[$fileField]['tmp_name'];
+                                        $fileName = $_FILES[$fileField]['name'];
+                                        $fileType = $_FILES[$fileField]['type'];
+                                        $fileSize = $_FILES[$fileField]['size'];
+                                    }
+                                    
+                                    if ($error === UPLOAD_ERR_OK && !empty($tmpName)) {
                                         $file = [
-                                            'name' => $_FILES['msg_photos_' . $i]['name'][$key],
-                                            'type' => $_FILES['msg_photos_' . $i]['type'][$key],
-                                            'tmp_name' => $_FILES['msg_photos_' . $i]['tmp_name'][$key],
-                                            'error' => $_FILES['msg_photos_' . $i]['error'][$key],
-                                            'size' => $_FILES['msg_photos_' . $i]['size'][$key]
+                                            'name' => $fileName,
+                                            'type' => $fileType,
+                                            'tmp_name' => $tmpName,
+                                            'error' => $error,
+                                            'size' => $fileSize
                                         ];
                                         $uploaded = uploadPhoto($file);
                                         if ($uploaded) {
