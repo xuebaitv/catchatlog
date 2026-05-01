@@ -388,11 +388,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pageSubtitle = $_POST['page_subtitle'];
                 $accessPasswordEnabled = isset($_POST['access_password_enabled']) ? true : false;
                 $accessPassword = $_POST['access_password'];
+                $aiEnabled = isset($_POST['ai_enabled']) ? true : false;
+                $aiApiUrl = $_POST['ai_api_url'];
+                $aiApiKey = $_POST['ai_api_key'];
+                $aiModel = $_POST['ai_model'];
+                $aiSystemPrompt = $_POST['ai_system_prompt'];
+                
                 $settings = getSettings();
                 $settings['page_title'] = $pageTitle;
                 $settings['page_subtitle'] = $pageSubtitle;
                 $settings['access_password_enabled'] = $accessPasswordEnabled;
                 $settings['access_password'] = $accessPassword;
+                $settings['ai_enabled'] = $aiEnabled;
+                $settings['ai_api_url'] = $aiApiUrl;
+                $settings['ai_api_key'] = $aiApiKey;
+                $settings['ai_model'] = $aiModel;
+                $settings['ai_system_prompt'] = $aiSystemPrompt;
+                
                 if (saveSettings($settings)) {
                     $message = '页面设置保存成功';
                 } else {
@@ -637,6 +649,7 @@ foreach ($chats as $chat) {
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-groups')">📁 分组管理</button>
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-add-chat')">💬 添加会话</button>
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-settings')">⚙️ 页面设置</button>
+                <button type="button" class="nav-btn" onclick="scrollToCard('card-ai-settings')">🤖 AI设置</button>
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-password')">🔐 修改密码</button>
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-chat-list')">📋 对话列表</button>
             </div>
@@ -780,6 +793,51 @@ foreach ($chats as $chat) {
                     <button type="submit" class="btn">修改密码</button>
                 </form>
             </div>
+        </div>
+
+        <div class="card" id="card-ai-settings">
+            <h2>🤖 AI推荐话术设置</h2>
+            <form onsubmit="return ajaxFormSubmit(event, 'update_settings')">
+                <?php $settings = getSettings(); ?>
+                <input type="hidden" name="page_title" value="<?php echo htmlspecialchars($settings['page_title']); ?>">
+                <input type="hidden" name="page_subtitle" value="<?php echo htmlspecialchars($settings['page_subtitle']); ?>">
+                <input type="hidden" name="access_password" value="<?php echo htmlspecialchars($settings['access_password']); ?>">
+                <div class="form-switch">
+                    <label class="switch">
+                        <input type="checkbox" id="ai_enabled" name="ai_enabled" value="1" <?php echo $settings['ai_enabled'] ? 'checked' : ''; ?>>
+                        <span class="slider"></span>
+                    </label>
+                    <label for="ai_enabled">启用AI推荐话术功能</label>
+                </div>
+                <div class="two-col" style="margin: 0 -10px;">
+                    <div class="form-group" style="padding: 0 10px; margin-bottom: 0;">
+                        <label for="ai_api_url">API接口地址</label>
+                        <input type="text" id="ai_api_url" name="ai_api_url" value="<?php echo htmlspecialchars($settings['ai_api_url']); ?>" placeholder="https://api.openai.com/v1/chat/completions">
+                    </div>
+                    <div class="form-group" style="padding: 0 10px; margin-bottom: 0;">
+                        <label for="ai_model">模型名称</label>
+                        <input type="text" id="ai_model" name="ai_model" value="<?php echo htmlspecialchars($settings['ai_model']); ?>" placeholder="例如：gpt-3.5-turbo">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="ai_api_key">API Key（sk-...）</label>
+                    <input type="password" id="ai_api_key" name="ai_api_key" value="<?php echo htmlspecialchars($settings['ai_api_key']); ?>" placeholder="输入你的API密钥">
+                </div>
+                <div class="form-group">
+                    <label for="ai_system_prompt">系统提示词（AI角色设定）</label>
+                    <textarea id="ai_system_prompt" name="ai_system_prompt" rows="3"><?php echo htmlspecialchars($settings['ai_system_prompt']); ?></textarea>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-weight: bold; margin-bottom: 10px; color: #333;">🔧 环境诊断</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                        <div>✅ PHP版本：<?php echo phpversion(); ?></div>
+                        <div><?php echo function_exists('curl_init') ? '✅ CURL扩展：已启用' : '❌ CURL扩展：未启用'; ?></div>
+                        <div><?php echo function_exists('json_decode') ? '✅ JSON支持：已启用' : '❌ JSON支持：未启用'; ?></div>
+                        <div><?php echo ini_get('allow_url_fopen') ? '✅ allow_url_fopen：开启' : '⚠️ allow_url_fopen：关闭'; ?></div>
+                    </div>
+                </div>
+                <button type="submit" class="btn">保存AI设置</button>
+            </form>
         </div>
 
         <div class="card" id="card-chat-list">
