@@ -388,6 +388,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pageSubtitle = $_POST['page_subtitle'];
                 $accessPasswordEnabled = isset($_POST['access_password_enabled']) ? true : false;
                 $accessPassword = $_POST['access_password'];
+                
+                $settings = getSettings();
+                $settings['page_title'] = $pageTitle;
+                $settings['page_subtitle'] = $pageSubtitle;
+                $settings['access_password_enabled'] = $accessPasswordEnabled;
+                $settings['access_password'] = $accessPassword;
+                
+                if (saveSettings($settings)) {
+                    $message = '页面设置保存成功';
+                } else {
+                    $message = '保存失败，请重试';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'update_ai_settings':
                 $aiEnabled = isset($_POST['ai_enabled']) ? true : false;
                 $aiApiUrl = $_POST['ai_api_url'];
                 $aiApiKey = $_POST['ai_api_key'];
@@ -395,10 +411,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $aiSystemPrompt = $_POST['ai_system_prompt'];
                 
                 $settings = getSettings();
-                $settings['page_title'] = $pageTitle;
-                $settings['page_subtitle'] = $pageSubtitle;
-                $settings['access_password_enabled'] = $accessPasswordEnabled;
-                $settings['access_password'] = $accessPassword;
                 $settings['ai_enabled'] = $aiEnabled;
                 $settings['ai_api_url'] = $aiApiUrl;
                 $settings['ai_api_key'] = $aiApiKey;
@@ -406,7 +418,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $settings['ai_system_prompt'] = $aiSystemPrompt;
                 
                 if (saveSettings($settings)) {
-                    $message = '页面设置保存成功';
+                    $message = 'AI设置保存成功';
                 } else {
                     $message = '保存失败，请重试';
                     $messageType = 'error';
@@ -796,12 +808,9 @@ foreach ($chats as $chat) {
         </div>
 
         <div class="card" id="card-ai-settings">
-            <h2>🤖 AI推荐话术设置</h2>
-            <form onsubmit="return ajaxFormSubmit(event, 'update_settings')">
+        <h2>🤖 AI设置</h2>
+        <form onsubmit="return ajaxFormSubmit(event, 'update_ai_settings')">
                 <?php $settings = getSettings(); ?>
-                <input type="hidden" name="page_title" value="<?php echo htmlspecialchars($settings['page_title']); ?>">
-                <input type="hidden" name="page_subtitle" value="<?php echo htmlspecialchars($settings['page_subtitle']); ?>">
-                <input type="hidden" name="access_password" value="<?php echo htmlspecialchars($settings['access_password']); ?>">
                 <div class="form-switch">
                     <label class="switch">
                         <input type="checkbox" id="ai_enabled" name="ai_enabled" value="1" <?php echo $settings['ai_enabled'] ? 'checked' : ''; ?>>

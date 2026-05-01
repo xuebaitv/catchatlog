@@ -3,7 +3,7 @@ function getChats($groupId = null) {
     $chats = [];
     if ($handle = opendir(CHAT_DIR)) {
         while (false !== ($entry = readdir($handle))) {
-            if ($entry != "." && $entry != ".." && strpos($entry, '.json') !== false && $entry !== 'groups.json') {
+            if ($entry != "." && $entry != ".." && substr($entry, -5) === '.json' && $entry !== 'groups.json' && $entry !== 'settings.json') {
                 $filePath = CHAT_DIR . $entry;
                 $content = file_get_contents($filePath);
                 $chat = json_decode($content, true);
@@ -32,7 +32,7 @@ function saveChat($data) {
 }
 
 function deleteChat($id) {
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $id)) {
+    if (!preg_match('/^[a-zA-Z0-9_.]+$/', $id)) {
         return false;
     }
     $filePath = CHAT_DIR . $id . '.json';
@@ -106,7 +106,7 @@ function addGroup($name, $description = '') {
 }
 
 function deleteGroup($id) {
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $id)) {
+    if (!preg_match('/^[a-zA-Z0-9_.]+$/', $id)) {
         return false;
     }
     $groups = getGroups();

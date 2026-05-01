@@ -16,35 +16,26 @@ function getSettings() {
         'ai_api_url' => 'https://api.openai.com/v1/chat/completions',
         'ai_api_key' => '',
         'ai_model' => 'gpt-3.5-turbo',
-        'ai_system_prompt' => '你是一个专业的话术顾问。请参考以下历史对话记录，根据用户的问题给出最合适的回复建议。回复要专业、友好，符合真实聊天场景。'
+        'ai_system_prompt' => '你是一个专业的话术顾问。请参考以下历史对话记录，根据用户的问题给出最合适的回复而不是建议。不需要又回复内容以外的任何内容包括符号，回复要专业、友好，简洁，符合真实聊天场景，尽量靠近充值目标，并尽量根据我提供的全部对话中的内容进行回复。'
     ];
     
     if (!file_exists(SETTINGS_FILE)) {
+        file_put_contents(SETTINGS_FILE, json_encode($defaultSettings, JSON_UNESCAPED_UNICODE));
         return $defaultSettings;
     }
     
     $content = file_get_contents(SETTINGS_FILE);
     $settings = json_decode($content, true);
     
-    $result = array_merge($defaultSettings, $settings ?: []);
-    
-    if (!isset($result['page_title']) || is_null($result['page_title']) || $result['page_title'] === '') {
-        $result['page_title'] = $defaultSettings['page_title'];
+    if (!$settings) {
+        file_put_contents(SETTINGS_FILE, json_encode($defaultSettings, JSON_UNESCAPED_UNICODE));
+        return $defaultSettings;
     }
-    if (!isset($result['page_subtitle']) || is_null($result['page_subtitle']) || $result['page_subtitle'] === '') {
-        $result['page_subtitle'] = $defaultSettings['page_subtitle'];
-    }
-    if (!isset($result['access_password']) || is_null($result['access_password']) || $result['access_password'] === '') {
-        $result['access_password'] = $defaultSettings['access_password'];
-    }
-    if (!isset($result['ai_api_url']) || is_null($result['ai_api_url']) || $result['ai_api_url'] === '') {
-        $result['ai_api_url'] = $defaultSettings['ai_api_url'];
-    }
-    if (!isset($result['ai_model']) || is_null($result['ai_model']) || $result['ai_model'] === '') {
-        $result['ai_model'] = $defaultSettings['ai_model'];
-    }
-    if (!isset($result['ai_system_prompt']) || is_null($result['ai_system_prompt']) || $result['ai_system_prompt'] === '') {
-        $result['ai_system_prompt'] = $defaultSettings['ai_system_prompt'];
+    $result = $defaultSettings;
+    foreach ($settings as $key => $value) {
+        if (!is_null($value) && $value !== '') {
+            $result[$key] = $value;
+        }
     }
     
     return $result;
