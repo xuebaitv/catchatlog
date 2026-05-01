@@ -150,6 +150,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
 
+            case 'batch_delete_chat':
+                $ids = isset($_POST['ids']) ? json_decode($_POST['ids'], true) : [];
+                $deletedCount = 0;
+                foreach ($ids as $id) {
+                    if (deleteChat($id)) {
+                        $deletedCount++;
+                    }
+                }
+                if ($deletedCount > 0) {
+                    $message = '成功删除 ' . $deletedCount . ' 条对话';
+                } else {
+                    $message = '删除失败，请重试';
+                    $messageType = 'error';
+                }
+                break;
+
             case 'update_chat':
                 $chatId = $_POST['chat_id'];
                 $filePath = CHAT_DIR . $chatId . '.json';
@@ -391,6 +407,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $chats = getChats();
 $groups = getGroups();
+
+$groupedChats = [];
+$groupedChats[''] = ['name' => '未分类', 'chats' => []];
+foreach ($groups as $group) {
+    $groupedChats[$group['id']] = ['name' => $group['name'], 'chats' => []];
+}
+
+foreach ($chats as $chat) {
+    $groupId = isset($chat['group_id']) ? $chat['group_id'] : '';
+    if (!isset($groupedChats[$groupId])) {
+        $groupId = '';
+    }
+    $groupedChats[$groupId]['chats'][] = $chat;
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -443,6 +473,17 @@ $groups = getGroups();
         .chat-table th, .chat-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         .chat-table th { background: #f8f9fa; color: #666; font-weight: bold; }
         .chat-table tr:hover { background: #f8f9fa; }
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+        .chat-group { margin-bottom: 15px; border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+        .chat-group-header { display: flex; align-items: center; padding: 12px 15px; background: #f8f9fa; cursor: pointer; user-select: none; transition: background 0.2s; }
+        .chat-group-header:hover { background: #e9ecef; }
+        .chat-group-toggle { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; margin-right: 10px; transition: transform 0.2s; font-size: 14px; }
+        .chat-group.collapsed .chat-group-toggle { transform: rotate(-90deg); }
+        .chat-group-name { font-weight: bold; color: #333; flex: 1; }
+        .chat-group-count { background: #1a73e8; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+        .chat-group-body { display: block; }
+        .chat-group.collapsed .chat-group-body { display: none; }
+        .chat-group .chat-table { border-radius: 0; margin-bottom: 0; }
         .chat-content-preview { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
         .chat-images-preview { display: flex; gap: 5px; flex-wrap: wrap; }
         .chat-images-preview img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer; transition: transform 0.2s; }
@@ -451,6 +492,7 @@ $groups = getGroups();
         .sender-tag.customer { background: #f3e8ff; color: #667eea; }
         .action-btns { display: flex; gap: 8px; }
         .action-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .change-group { max-width: 100px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
         .action-btn.delete { background: #ff4444; color: white; }
         .action-btn.delete:hover { background: #d32f2f; transform: translateY(-1px); }
         .action-btn.edit { background: #1a73e8; color: white; }
@@ -462,7 +504,22 @@ $groups = getGroups();
         .group-item p { color: #666; font-size: 12px; margin-bottom: 10px; }
         .group-item .group-actions { display: flex; gap: 5px; }
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { 
+            .two-col { grid-template-columns: 1fr; } 
+            .container { padding: 15px; }
+            .card { padding: 18px; }
+            .card h2 { font-size: 18px; }
+            .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .chat-table { min-width: 380px; }
+            .chat-table th, .chat-table td { padding: 8px 6px; font-size: 13px; }
+            .chat-content-preview { max-width: 100px; }
+            .action-btns { flex-direction: column; gap: 4px; }
+            .action-btn { width: 100%; text-align: center; }
+            .header h1 { font-size: 22px; }
+            .modal-content { padding: 20px; width: 100%; }
+            .chat-group-header { padding: 10px 12px; }
+            .chat-group-name { font-size: 14px; }
+        }
         form { display: inline; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; overflow-y: auto; padding: 20px; }
         .modal.active { display: flex; animation: fadeIn 0.3s ease-out; }
@@ -641,84 +698,53 @@ $groups = getGroups();
         </div>
 
         <div class="card">
-            <h2>📋 对话列表</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">📋 对话列表</h2>
+                <button type="button" class="btn btn-danger btn-small" id="batchDeleteBtn" onclick="batchDeleteChats()" disabled>🗑️ 批量删除 (<span id="selectedCount">0</span>)</button>
+            </div>
             <div id="chatListContainer">
                 <?php if (empty($chats)): ?>
                     <div class="no-chats">暂无对话内容</div>
                 <?php else: ?>
-                    <table class="chat-table" id="chatTable">
-                        <thead>
-                            <tr>
-                                <th>昵称/主题</th>
-                                <th>内容预览</th>
-                                <th>发送者</th>
-                                <th>分组</th>
-                                <th>图片</th>
-                                <th>时间</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="chatTableBody">
-                            <?php foreach ($chats as $chat): ?>
-                                <tr data-chat-id="<?php echo htmlspecialchars($chat['id']); ?>" class="chat-row">
-                                    <td><?php echo htmlspecialchars($chat['name']); ?></td>
-                                    <td class="chat-content-preview" title="<?php echo !empty($chat['messages']) ? '多条消息对话' : htmlspecialchars($chat['content']); ?>">
-                                        <?php echo !empty($chat['messages']) ? '📝 多条消息对话 (' . count($chat['messages']) . '条)' : htmlspecialchars($chat['content']); ?>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        if (!empty($chat['sender'])) {
-                                            echo '<span class="sender-tag' . ($chat['sender'] === 'me' ? '' : ' customer') . '">' . ($chat['sender'] === 'me' ? '我' : '客户') . '</span>';
-                                        } elseif (!empty($chat['messages'])) {
-                                            echo '<span class="sender-tag" style="background:#f0f0f0;color:#666;">多消息</span>';
-                                        } else {
-                                            echo '<span class="sender-tag customer">客户</span>';
-                                        }
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <select class="change-group" onchange="updateChatGroup('<?php echo $chat['id']; ?>', this.value)">
-                                            <option value="">未分类</option>
-                                            <?php foreach ($groups as $group): ?>
-                                                <option value="<?php echo htmlspecialchars($group['id']); ?>" <?php echo (!empty($chat['group_id']) && $chat['group_id'] === $group['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($group['name']); ?></option>
+                    <?php foreach ($groupedChats as $groupId => $groupData): ?>
+                        <?php if (empty($groupData['chats'])) continue; ?>
+                        <div class="chat-group collapsed" data-group-id="<?php echo htmlspecialchars($groupId); ?>" id="chat-group-<?php echo htmlspecialchars($groupId ?: 'ungrouped'); ?>">
+                            <div class="chat-group-header" onclick="toggleChatGroup('<?php echo htmlspecialchars($groupId ?: 'ungrouped'); ?>')">
+                                <span class="chat-group-toggle">▼</span>
+                                <span class="chat-group-name"><?php echo htmlspecialchars($groupData['name']); ?></span>
+                                <span class="chat-group-count"><?php echo count($groupData['chats']); ?> 条</span>
+                            </div>
+                            <div class="chat-group-body">
+                                <div class="table-container">
+                                    <table class="chat-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 40px;"><input type="checkbox" class="group-select-all" onclick="toggleGroupSelectAll('<?php echo htmlspecialchars($groupId ?: 'ungrouped'); ?>')"></th>
+                                                <th>昵称/主题</th>
+                                                <th>时间</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($groupData['chats'] as $chat): ?>
+                                                <tr data-chat-id="<?php echo htmlspecialchars($chat['id']); ?>" class="chat-row">
+                                                    <td><input type="checkbox" class="chat-checkbox" value="<?php echo htmlspecialchars($chat['id']); ?>" data-group="<?php echo htmlspecialchars($groupId ?: 'ungrouped'); ?>"></td>
+                                                    <td><?php echo htmlspecialchars($chat['name']); ?></td>
+                                                    <td><?php echo date('Y-m-d H:i', $chat['timestamp']); ?></td>
+                                                    <td>
+                                                        <div class="action-btns">
+                                                            <button type="button" class="action-btn edit btn-small" onclick="editChat('<?php echo $chat['id']; ?>')">编辑</button>
+                                                            <button type="button" class="action-btn delete btn-small" onclick="deleteChatById('<?php echo $chat['id']; ?>')">删除</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                             <?php endforeach; ?>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $allImages = [];
-                                        if (!empty($chat['images']) && is_array($chat['images'])) {
-                                            $allImages = $chat['images'];
-                                        } elseif (!empty($chat['messages']) && is_array($chat['messages'])) {
-                                            foreach ($chat['messages'] as $msg) {
-                                                if (!empty($msg['images']) && is_array($msg['images'])) {
-                                                    $allImages = array_merge($allImages, $msg['images']);
-                                                }
-                                            }
-                                        }
-                                        if (!empty($allImages)) {
-                                            echo '<div class="chat-images-preview">';
-                                            foreach (array_slice($allImages, 0, 3) as $image) {
-                                                echo '<img src="../' . PHOTOS_URL . htmlspecialchars($image) . '" alt="图片" onclick="openImgPreview(\'' . PHOTOS_URL . htmlspecialchars($image) . '\')">';
-                                            }
-                                            if (count($allImages) > 3) {
-                                                echo '<span style="color:#999;font-size:12px;">+' . (count($allImages) - 3) . '</span>';
-                                            }
-                                            echo '</div>';
-                                        } else {
-                                            echo '无';
-                                        }
-                                        ?>
-                                    </td>
-                                    <td><?php echo date('Y-m-d H:i:s', $chat['timestamp']); ?></td>
-                                    <td>
-                                        <button type="button" class="action-btn edit" onclick="editChat('<?php echo $chat['id']; ?>')">编辑</button>
-                                        <button type="button" class="action-btn delete" onclick="deleteChatById('<?php echo $chat['id']; ?>')">删除</button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -920,6 +946,86 @@ $groups = getGroups();
                 showMessage('请求失败', 'error');
             }
         }
+
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.chat-checkbox:checked');
+            const count = checkboxes.length;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('batchDeleteBtn').disabled = count === 0;
+        }
+
+        function toggleSelectAllChats() {
+            const selectAll = document.getElementById('selectAllChats');
+            const checkboxes = document.querySelectorAll('.chat-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateSelectedCount();
+        }
+
+        async function batchDeleteChats() {
+            const checkboxes = document.querySelectorAll('.chat-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (ids.length === 0) {
+                showToast('请先选择要删除的对话', 'error');
+                return;
+            }
+            
+            if (!confirm('确定要删除选中的 ' + ids.length + ' 条对话吗？')) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'batch_delete_chat');
+                formData.append('ids', JSON.stringify(ids));
+                formData.append('X-Requested-With', 'XMLHttpRequest');
+
+                const response = await fetch('index.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || '批量删除成功', 'success');
+                    sessionStorage.setItem('scrollPosition', window.scrollY);
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showMessage(result.message || '删除失败', 'error');
+                }
+            } catch (e) {
+                console.error('Batch delete error:', e);
+                showMessage('请求失败', 'error');
+            }
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('chat-checkbox')) {
+                updateSelectedCount();
+            }
+        });
+
+        function toggleChatGroup(groupId) {
+            const group = document.getElementById('chat-group-' + groupId);
+            if (group) {
+                group.classList.toggle('collapsed');
+            }
+        }
+
+        function toggleGroupSelectAll(groupId) {
+            const group = document.getElementById('chat-group-' + groupId);
+            const groupCheckbox = group.querySelector('.group-select-all');
+            const checkboxes = group.querySelectorAll('.chat-checkbox');
+            checkboxes.forEach(cb => cb.checked = groupCheckbox.checked);
+            updateSelectedCount();
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('group-select-all')) {
+                const group = e.target.closest('.chat-group');
+                const groupId = group.dataset.groupId || 'ungrouped';
+                toggleGroupSelectAll(groupId);
+            }
+        });
 
         async function deleteGroupById(groupId) {
             if (!confirm('确定要删除该分组吗？该分组下的所有对话已一并删除！')) return;
