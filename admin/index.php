@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
 
                 if (saveChat($chatData)) {
-                    $message = '多消息对话添加成功';
+                    $message = '对话添加成功';
                 } else {
                     $message = '添加失败，请重试';
                     $messageType = 'error';
@@ -383,6 +383,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
 
+            case 'update_settings':
+                $pageTitle = $_POST['page_title'];
+                $pageSubtitle = $_POST['page_subtitle'];
+                $accessPasswordEnabled = isset($_POST['access_password_enabled']) ? true : false;
+                $accessPassword = $_POST['access_password'];
+                $settings = getSettings();
+                $settings['page_title'] = $pageTitle;
+                $settings['page_subtitle'] = $pageSubtitle;
+                $settings['access_password_enabled'] = $accessPasswordEnabled;
+                $settings['access_password'] = $accessPassword;
+                if (saveSettings($settings)) {
+                    $message = '页面设置保存成功';
+                } else {
+                    $message = '保存失败，请重试';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'change_password':
+                $oldPassword = $_POST['old_password'];
+                $newPassword = $_POST['new_password'];
+                $confirmPassword = $_POST['confirm_password'];
+                
+                if ($oldPassword !== ADMIN_PASSWORD) {
+                    $message = '当前密码错误';
+                    $messageType = 'error';
+                } elseif ($newPassword !== $confirmPassword) {
+                    $message = '两次输入的密码不一致';
+                    $messageType = 'error';
+                } elseif (strlen($newPassword) < 4) {
+                    $message = '密码长度至少4位';
+                    $messageType = 'error';
+                } else {
+                    $configPath = __DIR__ . '/../inc/config.php';
+                    $configContent = file_get_contents($configPath);
+                    $configContent = preg_replace("/define\('ADMIN_PASSWORD',\s*'[^']*'\);/", "define('ADMIN_PASSWORD', '" . $newPassword . "');", $configContent);
+                    if (file_put_contents($configPath, $configContent)) {
+                        $message = '密码修改成功，请重新登录';
+                        logout();
+                    } else {
+                        $message = '密码修改失败，请检查文件权限';
+                        $messageType = 'error';
+                    }
+                }
+                break;
+
             case 'logout':
                 logout();
                 if ($isAjax) {
@@ -433,8 +479,13 @@ foreach ($chats as $chat) {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
         .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header { margin-bottom: 20px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .header h1 { color: #333; }
+        .nav-bar { display: flex; gap: 10px; background: white; padding: 12px 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); flex-wrap: wrap; }
+        .nav-btn { padding: 8px 16px; background: #f1f3f4; color: #5f6368; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .nav-btn:hover { background: #e8eaed; color: #1a73e8; }
+        .nav-btn:active { background: #d2e3fc; color: #1a73e8; }
         .logout-btn { padding: 10px 20px; background: #ff4444; color: white; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.3s; }
         .logout-btn:hover { opacity: 0.9; }
         .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px; }
@@ -445,6 +496,14 @@ foreach ($chats as $chat) {
         .form-group input[type="text"]:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #1a73e8; }
         .form-group textarea { height: 80px; resize: vertical; }
         .form-group input[type="file"] { padding: 8px; border: 1px dashed #ddd; border-radius: 8px; width: 100%; }
+        .form-switch { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .form-switch label { margin: 0; color: #333; font-weight: bold; }
+        .switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #1a73e8; }
+        input:checked + .slider:before { transform: translateX(24px); }
         .btn { padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.3s; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
@@ -498,7 +557,11 @@ foreach ($chats as $chat) {
         .action-btn.edit { background: #1a73e8; color: white; }
         .action-btn.edit:hover { background: #1557b0; transform: translateY(-1px); }
         .no-chats { text-align: center; color: #999; padding: 50px; }
-        .group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; max-height: 300px; overflow-y: auto; padding-right: 5px; }
+        .group-list::-webkit-scrollbar { width: 6px; }
+        .group-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        .group-list::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        .group-list::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
         .group-item { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #1a73e8; transition: all 0.3s; }
         .group-item h3 { color: #333; margin-bottom: 5px; font-size: 16px; }
         .group-item p { color: #666; font-size: 12px; margin-bottom: 10px; }
@@ -564,56 +627,30 @@ foreach ($chats as $chat) {
 <body>
     <div class="container">
         <div class="header">
-            <h1>⚙️ 后台管理</h1>
-            <form id="logoutForm" onsubmit="return logout(event)">
-                <button type="submit" class="logout-btn">退出登录</button>
-            </form>
+            <div class="header-top">
+                <h1>⚙️ 后台管理</h1>
+                <form id="logoutForm" onsubmit="return logout(event)">
+                    <button type="submit" class="logout-btn">退出登录</button>
+                </form>
+            </div>
+            <div class="nav-bar">
+                <button type="button" class="nav-btn" onclick="scrollToCard('card-groups')">📁 分组管理</button>
+                <button type="button" class="nav-btn" onclick="scrollToCard('card-add-chat')">💬 添加会话</button>
+                <button type="button" class="nav-btn" onclick="scrollToCard('card-settings')">⚙️ 页面设置</button>
+                <button type="button" class="nav-btn" onclick="scrollToCard('card-password')">🔐 修改密码</button>
+                <button type="button" class="nav-btn" onclick="scrollToCard('card-chat-list')">📋 对话列表</button>
+            </div>
         </div>
 
         <div id="messageContainer"></div>
 
         <div class="two-col">
-            <div class="card">
-                <h2>➕ 添加单条对话</h2>
-                <form id="addChatForm" onsubmit="return ajaxFormSubmit(event, 'add_chat')" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="name">昵称</label>
-                        <input type="text" id="name" name="name" placeholder="请输入昵称" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="sender">发送者</label>
-                        <select id="sender" name="sender" required>
-                            <option value="customer">客户（左边）</option>
-                            <option value="me">我（右边）</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="content">内容</label>
-                        <textarea id="content" name="content" placeholder="请输入对话内容" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="group_id">分组</label>
-                        <select id="group_id" name="group_id">
-                            <option value="">未分类</option>
-                            <?php foreach ($groups as $group): ?>
-                                <option value="<?php echo htmlspecialchars($group['id']); ?>"><?php echo htmlspecialchars($group['name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="photos">图片（可选，可多选）</label>
-                        <input type="file" id="photos" name="photos[]" multiple accept="image/*">
-                    </div>
-                    <button type="submit" class="btn">添加对话</button>
-                </form>
-            </div>
-
-            <div class="card">
+            <div class="card" id="card-groups">
                 <h2>📁 分组管理</h2>
                 <form id="addGroupForm" onsubmit="return ajaxFormSubmit(event, 'add_group')">
                     <div class="form-group">
                         <label for="group_name">分组名称</label>
-                        <input type="text" id="group_name" name="group_name" placeholder="例如：家庭群、工作群" required>
+                        <input type="text" id="group_name" name="group_name" placeholder="例如：备忘、场景一" required>
                     </div>
                     <div class="form-group">
                         <label for="group_description">分组描述（可选）</label>
@@ -640,26 +677,25 @@ foreach ($chats as $chat) {
                     </div>
                 <?php endif; ?>
             </div>
-        </div>
 
-        <div class="card">
-            <h2>💬 添加多消息对话</h2>
-            <form id="addMultiChatForm" onsubmit="return ajaxFormSubmit(event, 'add_multi_chat', true)" enctype="multipart/form-data">
-                <input type="hidden" name="message_count" id="message_count" value="2">
-                
-                <div class="form-group">
-                    <label for="multi_name">对话主题/昵称</label>
-                    <input type="text" id="multi_name" name="name" placeholder="例如：与客户A的对话" required>
-                </div>
-                <div class="form-group">
-                    <label for="multi_group_id">分组</label>
-                    <select id="multi_group_id" name="group_id">
-                        <option value="">未分类</option>
-                        <?php foreach ($groups as $group): ?>
-                            <option value="<?php echo htmlspecialchars($group['id']); ?>"><?php echo htmlspecialchars($group['name']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+            <div class="card" id="card-add-chat">
+                <h2>💬 添加会话</h2>
+                <form id="addMultiChatForm" onsubmit="return ajaxFormSubmit(event, 'add_multi_chat', true)" enctype="multipart/form-data">
+                    <input type="hidden" name="message_count" id="message_count" value="2">
+                    
+                    <div class="form-group">
+                        <label for="multi_name">对话主题/昵称</label>
+                        <input type="text" id="multi_name" name="name" placeholder="例如：与客户A的对话" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="multi_group_id">分组</label>
+                        <select id="multi_group_id" name="group_id">
+                            <option value="">未分类</option>
+                            <?php foreach ($groups as $group): ?>
+                                <option value="<?php echo htmlspecialchars($group['id']); ?>"><?php echo htmlspecialchars($group['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
                 <div id="messages_container">
                     <div class="msg-block customer">
@@ -693,11 +729,60 @@ foreach ($chats as $chat) {
 
                 <button type="button" class="btn-add-message" onclick="addMessage()">+ 添加消息</button>
                 <br><br>
-                <button type="submit" class="btn">添加多消息对话</button>
+                <button type="submit" class="btn">添加会话</button>
             </form>
         </div>
+        </div>
 
-        <div class="card">
+        <div class="two-col">
+            <div class="card" id="card-settings">
+                <h2>⚙️ 页面设置</h2>
+                <form onsubmit="return ajaxFormSubmit(event, 'update_settings')">
+                    <?php $settings = getSettings(); ?>
+                    <div class="form-switch">
+                        <label class="switch">
+                            <input type="checkbox" id="access_password_enabled" name="access_password_enabled" value="1" <?php echo $settings['access_password_enabled'] ? 'checked' : ''; ?>>
+                            <span class="slider"></span>
+                        </label>
+                        <label for="access_password_enabled">启用前端访问密码保护</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="page_title">页面标题</label>
+                        <input type="text" id="page_title" name="page_title" value="<?php echo htmlspecialchars($settings['page_title']); ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="page_subtitle">页面子标题</label>
+                        <input type="text" id="page_subtitle" name="page_subtitle" value="<?php echo htmlspecialchars($settings['page_subtitle']); ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="access_password">前端访问密码（默认：view123）</label>
+                        <input type="text" id="access_password" name="access_password" value="<?php echo htmlspecialchars($settings['access_password']); ?>" required minlength="4">
+                    </div>
+                    <button type="submit" class="btn">保存设置</button>
+                </form>
+            </div>
+
+            <div class="card" id="card-password">
+                <h2>🔐 修改密码</h2>
+                <form onsubmit="return ajaxFormSubmit(event, 'change_password')">
+                    <div class="form-group">
+                        <label for="old_password">当前密码</label>
+                        <input type="password" id="old_password" name="old_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">新密码</label>
+                        <input type="password" id="new_password" name="new_password" required minlength="4">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">确认新密码</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required minlength="4">
+                    </div>
+                    <button type="submit" class="btn">修改密码</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card" id="card-chat-list">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin: 0;">📋 对话列表</h2>
                 <button type="button" class="btn btn-danger btn-small" id="batchDeleteBtn" onclick="batchDeleteChats()" disabled>🗑️ 批量删除 (<span id="selectedCount">0</span>)</button>
@@ -857,6 +942,18 @@ foreach ($chats as $chat) {
                 toast.style.animation = 'toastOut 0.3s ease-out forwards';
                 setTimeout(() => toast.remove(), 300);
             }, 2500);
+        }
+
+        function scrollToCard(cardId) {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                card.style.transition = 'box-shadow 0.3s';
+                card.style.boxShadow = '0 0 0 3px rgba(26, 115, 232, 0.3)';
+                setTimeout(() => {
+                    card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                }, 1500);
+            }
         }
 
         function openImgPreview(src) {
@@ -1109,7 +1206,7 @@ foreach ($chats as $chat) {
 
         function addMessage() {
             const container = document.getElementById('messages_container');
-            const defaultSender = 'customer'; // 默认添加客户消息
+            const defaultSender = 'customer';
             
             const msgBlock = document.createElement('div');
             msgBlock.className = 'msg-block ' + defaultSender;
