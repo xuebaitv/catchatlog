@@ -1133,7 +1133,7 @@ if ($settings['access_password_enabled']) {
 
             echo '<div class="search-container">';
             echo '<span class="search-icon">🔍</span>';
-            echo '<input type="text" class="search-input" id="searchInput" placeholder="输入关键词搜索对话，或点击AI按钮智能推荐话术..." oninput="searchMessages(this.value); aiSearchActive=false;" onfocus="toggleSearchResults(true)" onblur="setTimeout(() => aiSearchActive || toggleSearchResults(false), 500)" onkeypress="if(event.key===\'Enter\'){aiSearchActive=true; triggerAiSearch();}">';
+            echo '<input type="text" class="search-input" id="searchInput" placeholder="输入关键词搜索对话." oninput="searchMessages(this.value); aiSearchActive=false;" onfocus="toggleSearchResults(true)" onblur="setTimeout(() => aiSearchActive || toggleSearchResults(false), 500)" onkeypress="if(event.key===\'Enter\'){aiSearchActive=true; triggerAiSearch();}">';
             echo '<div class="search-actions">';
             if ($settings['ai_enabled'] && !empty($settings['ai_api_key'])) {
                 echo '<button class="ai-search-btn" id="aiSearchBtn" onclick="aiSearchActive=true; setTimeout(() => triggerAiSearch(), 50);"><span>🤖</span><span>AI推荐</span></button>';
