@@ -1,9 +1,78 @@
+<?php
+session_start();
+require_once 'inc/config.php';
+require_once 'inc/functions.php';
+$settings = getSettings();
+
+if ($settings['access_password_enabled']) {
+    if (isset($_POST['logout_access'])) {
+        unset($_SESSION['access_granted']);
+        header('Location: ' . $_SERVER['REQUEST_URI']);
+        exit;
+    }
+    
+    if (!isset($_SESSION['access_granted']) || !$_SESSION['access_granted']) {
+        if (isset($_POST['access_password'])) {
+            if ($_POST['access_password'] === $settings['access_password']) {
+                $_SESSION['access_granted'] = true;
+            } else {
+                $error = '密码错误，请重试';
+            }
+        }
+        if (!isset($_SESSION['access_granted']) || !$_SESSION['access_granted']) {
+            ?>
+            <!DOCTYPE html>
+            <html lang="zh-CN">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>访问验证 - <?php echo htmlspecialchars($settings['page_title']); ?></title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+                    .login-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); width: 90%; max-width: 400px; text-align: center; }
+                    .login-box h1 { color: #333; margin-bottom: 10px; font-size: 24px; }
+                    .login-box p { color: #666; margin-bottom: 30px; }
+                    .form-group { margin-bottom: 20px; text-align: left; }
+                    .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: bold; }
+                    .form-group input { width: 100%; padding: 14px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; }
+                    .form-group input:focus { outline: none; border-color: #667eea; }
+                    .error { color: #ff4444; margin-bottom: 20px; padding: 12px; background: #ffebee; border-radius: 8px; }
+                    .btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: transform 0.2s; }
+                    .btn:hover { transform: translateY(-1px); }
+                    .lock-icon { font-size: 48px; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="login-box">
+                    <div class="lock-icon">🔒</div>
+                    <h1>访问验证</h1>
+                    <p>此页面受密码保护，请输入访问密码</p>
+                    <?php if (isset($error)): ?>
+                        <div class="error"><?php echo $error; ?></div>
+                    <?php endif; ?>
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="access_password">访问密码</label>
+                            <input type="password" id="access_password" name="access_password" placeholder="请输入密码" required autofocus>
+                        </div>
+                        <button type="submit" class="btn">验证并进入</button>
+                    </form>
+                </div>
+            </body>
+            </html>
+            <?php
+            exit;
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>对话展示</title>
+    <title><?php echo htmlspecialchars($settings['page_title']); ?></title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -52,6 +121,11 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             animation: fadeInDown 0.8s ease-out;
         }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
         .header h1 {
             color: #fff;
             margin-bottom: 10px;
@@ -61,6 +135,24 @@
         .header p {
             color: rgba(255, 255, 255, 0.9);
             font-size: 16px;
+        }
+        .logout-access-btn {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+        .logout-access-btn:hover {
+            background: rgba(255, 68, 68, 0.4);
         }
         .group-nav {
             display: flex;
@@ -646,13 +738,16 @@
     
     <div class="container">
         <div class="header">
-            <h1>💬 对话展示</h1>
-            <p>优雅的查看并编辑你的话术</p>
+            <h1>💬 <?php echo htmlspecialchars($settings['page_title']); ?></h1>
+            <p><?php echo htmlspecialchars($settings['page_subtitle']); ?></p>
+            <?php if ($settings['access_password_enabled'] && isset($_SESSION['access_granted']) && $_SESSION['access_granted']): ?>
+                <form method="POST" style="display: inline;">
+                    <button type="submit" name="logout_access" class="logout-access-btn">🚪 退出访问</button>
+                </form>
+            <?php endif; ?>
         </div>
 
         <?php
-        require_once 'inc/config.php';
-        require_once 'inc/functions.php';
 
         function getBingWallpaper() {
             try {
