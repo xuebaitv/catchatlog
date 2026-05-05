@@ -223,6 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         if (file_put_contents($filePath, json_encode($chat, JSON_UNESCAPED_UNICODE))) {
                             $message = '对话修改成功';
+                            updateDataVersion();
                         } else {
                             $message = '修改失败，请重试';
                             $messageType = 'error';
@@ -430,7 +431,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newPassword = $_POST['new_password'];
                 $confirmPassword = $_POST['confirm_password'];
                 
-                if ($oldPassword !== ADMIN_PASSWORD) {
+                $settings = getSettings();
+                
+                if ($oldPassword !== $settings['admin_password']) {
                     $message = '当前密码错误';
                     $messageType = 'error';
                 } elseif ($newPassword !== $confirmPassword) {
@@ -440,10 +443,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = '密码长度至少4位';
                     $messageType = 'error';
                 } else {
-                    $configPath = __DIR__ . '/../inc/config.php';
-                    $configContent = file_get_contents($configPath);
-                    $configContent = preg_replace("/define\('ADMIN_PASSWORD',\s*'[^']*'\);/", "define('ADMIN_PASSWORD', '" . $newPassword . "');", $configContent);
-                    if (file_put_contents($configPath, $configContent)) {
+                    $settings['admin_password'] = $newPassword;
+                    if (saveSettings($settings)) {
                         $message = '密码修改成功，请重新登录';
                         logout();
                     } else {
@@ -497,12 +498,29 @@ foreach ($chats as $chat) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
     <title>后台管理</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        @media (min-width: 1600px) {
+            .container { max-width: 1600px; }
+        }
+
+        @media (min-width: 1900px) {
+            .container { max-width: 1800px; }
+        }
+
+        @media (min-width: 2400px) {
+            .container { max-width: 2200px; }
+        }
         .header { margin-bottom: 20px; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .header h1 { color: #333; }
@@ -1630,6 +1648,13 @@ foreach ($chats as $chat) {
                 }, 100);
             }
         });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
     </script>
 </body>
 </html>

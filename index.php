@@ -117,6 +117,12 @@ if ($settings['access_password_enabled']) {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta name="theme-color" content="#667eea">
+                <meta name="apple-mobile-web-app-capable" content="yes">
+                <meta name="mobile-web-app-capable" content="yes">
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+                <link rel="manifest" href="/manifest.json">
+                <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23667eea'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white'>💬</text></svg>">
                 <title>访问验证 - <?php echo htmlspecialchars($settings['page_title']); ?></title>
                 <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -150,6 +156,13 @@ if ($settings['access_password_enabled']) {
                         <button type="submit" class="btn">验证并进入</button>
                     </form>
                 </div>
+                <script>
+                    if ('serviceWorker' in navigator) {
+                        window.addEventListener('load', () => {
+                            navigator.serviceWorker.register('/service-worker.js');
+                        });
+                    }
+                </script>
             </body>
             </html>
             <?php
@@ -163,13 +176,27 @@ if ($settings['access_password_enabled']) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="快捷回复">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23667eea'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white'>💬</text></svg>">
     <title><?php echo htmlspecialchars($settings['page_title']); ?></title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Microsoft YaHei', sans-serif;
             min-height: 100vh;
+            min-width: 481px;
             position: relative;
+            overflow-x: scroll;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        body::-webkit-scrollbar {
+            display: none;
         }
         .bg-wrapper {
             position: fixed;
@@ -194,123 +221,211 @@ if ($settings['access_password_enabled']) {
             z-index: -1;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
             position: relative;
             z-index: 1;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 30px 20px;
+
+        @media (min-width: 1900px) {
+            .container {
+                max-width: 1800px;
+            }
+        }
+
+        @media (min-width: 2200px) {
+            .container {
+                max-width: 2000px;
+            }
+        }
+
+        @media (min-width: 2600px) {
+            .container {
+                max-width: 2400px;
+            }
+        }
+        .top-section {
             background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 22px 28px 20px 28px;
+            margin-bottom: 30px;
             animation: fadeInDown 0.8s ease-out;
+            position: relative;
+            z-index: 1000;
         }
         .header {
-            text-align: center;
-            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 30px;
+            margin-bottom: 15px;
             position: relative;
             z-index: 10;
+            flex-wrap: wrap;
+        }
+        .header-content {
+            text-align: left;
+            flex: 1;
+            min-width: 280px;
+            padding-top: 5px;
         }
         .header h1 {
             color: #fff;
-            margin-bottom: 10px;
-            font-size: 28px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 3px;
+            font-size: 26px;
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.25);
             display: block !important;
             opacity: 1 !important;
             visibility: visible !important;
         }
         .header p {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 16px;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 14px;
             display: block !important;
             opacity: 1 !important;
             visibility: visible !important;
         }
+        .header-search {
+            flex: 0 1 580px;
+            min-width: 300px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .search-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        .search-toolbar {
+            display: flex;
+            gap: 8px;
+        }
+        .toolbar-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+        }
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px) scale(1.08);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
         .logout-access-btn {
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.15);
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: #fff;
-            border-radius: 20px;
             cursor: pointer;
-            font-size: 13px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
-        .logout-access-btn:hover {
-            background: rgba(255, 68, 68, 0.4);
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .back-to-top:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
         }
         .group-nav {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 30px;
-            justify-content: center;
+            gap: 10px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            justify-content: flex-start;
         }
         .group-nav-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 14px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
             cursor: pointer;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             transition: all 0.3s ease;
         }
         .group-nav-btn:hover {
-            background: rgba(255, 255, 255, 0.35);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
         }
         .search-container {
-            margin-bottom: 30px;
             position: relative;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            width: 100%;
         }
         .search-input {
             width: 100%;
-            padding: 14px 120px 14px 50px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 30px;
-            font-size: 15px;
-            color: #333;
+            padding: 12px 115px 12px 48px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 22px;
+            font-size: 14px;
+            color: #fff;
             outline: none;
             transition: all 0.3s;
             backdrop-filter: blur(10px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         }
         .search-input::placeholder {
-            color: #999;
+            color: rgba(255, 255, 255, 0.65);
         }
         .search-input:focus {
-            background: #fff;
-            border-color: #667eea;
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.35);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
         }
         .search-icon {
             position: absolute;
-            left: 18px;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
-            color: #999;
-            font-size: 18px;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 17px;
             z-index: 2;
         }
         .search-actions {
@@ -323,17 +438,17 @@ if ($settings['access_password_enabled']) {
             z-index: 2;
         }
         .ai-search-btn {
-            padding: 8px 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 7px 12px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
             color: white;
             border: none;
-            border-radius: 20px;
-            font-size: 13px;
+            border-radius: 18px;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
         .ai-search-btn:hover:not(:disabled) {
             transform: translateY(-1px);
@@ -361,46 +476,74 @@ if ($settings['access_password_enabled']) {
             top: 100%;
             left: 0;
             right: 0;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            margin-top: 8px;
-            max-height: 400px;
+            background: #f8f9fc;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-top: 10px;
+            max-height: 500px;
             overflow-y: auto;
-            z-index: 1000;
+            z-index: 99999;
             display: none;
+            padding: 8px 0;
         }
         .search-results.active {
             display: block;
         }
+        .search-results::-webkit-scrollbar {
+            width: 6px;
+        }
+        .search-results::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 0 16px 16px 0;
+        }
+        .search-results::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 3px;
+        }
+        .search-results::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.25);
+        }
         .search-result-item {
             padding: 15px 20px;
             cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.8);
+            margin: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            position: relative;
+        }
+        .search-result-item:first-child {
+            margin-top: 12px;
         }
         .search-result-item:last-child {
-            border-bottom: none;
+            margin-bottom: 16px;
         }
         .search-result-item:hover {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateX(3px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
         .search-result-title {
             font-weight: bold;
-            color: #333;
+            color: #1a1a2e;
             margin-bottom: 5px;
         }
         .search-result-preview {
             font-size: 13px;
-            color: #666;
+            color: #4a4a6a;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .search-result-highlight {
-            background: #fff3cd;
-            padding: 0 2px;
-            border-radius: 2px;
+            background: rgba(255, 193, 7, 0.6);
+            color: #1a1a2e;
+            padding: 0 4px;
+            border-radius: 3px;
+            font-weight: bold;
         }
         .message-highlight {
             animation: messagePulse 0.5s ease-in-out 3;
@@ -418,35 +561,47 @@ if ($settings['access_password_enabled']) {
             50% { transform: scale(1.02); }
         }
         .no-results {
-            padding: 30px;
+            padding: 40px;
             text-align: center;
-            color: #999;
+            color: #6a6a8a;
+            background: rgba(255, 255, 255, 0.8);
+            margin: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
         }
         .result-count {
-            padding: 10px 20px;
-            background: #f8f9fa;
+            padding: 12px 20px 0 20px;
+            background: transparent;
             font-size: 12px;
-            color: #666;
-            border-bottom: 1px solid #eee;
+            color: #4a4a6a;
+            border-bottom: none;
         }
         .ai-result-section {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-            border-bottom: 2px solid #e9ecef;
+            background: transparent;
+            border-bottom: none;
+            margin: 10px 12px;
         }
         .ai-result-header {
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.25) 0%, rgba(118, 75, 162, 0.25) 100%);
+            color: #1a1a2e;
             font-weight: bold;
             font-size: 13px;
             display: flex;
             align-items: center;
             gap: 8px;
+            border-radius: 12px 12px 0 0;
+            border: 1px solid rgba(102, 126, 234, 0.4);
+            border-bottom: none;
         }
         .ai-result-loading {
-            padding: 25px 20px;
+            padding: 30px 20px;
             text-align: center;
             color: #667eea;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 0 0 12px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-top: none;
         }
         .ai-result-loading .spinner {
             display: inline-block;
@@ -460,15 +615,25 @@ if ($settings['access_password_enabled']) {
         }
         .ai-suggestion-item {
             padding: 15px 20px;
-            border-bottom: 1px solid #e9ecef;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+            margin: 0;
+            border-radius: 0;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-top: none;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+        }
+        .ai-suggestion-item:first-child {
+            border-radius: 0;
+            border-top: 1px solid rgba(102, 126, 234, 0.4);
         }
         .ai-suggestion-item:last-child {
-            border-bottom: none;
+            border-radius: 0 0 12px 12px;
+            margin-bottom: 0;
         }
         .ai-suggestion-item:hover {
-            background: rgba(102, 126, 234, 0.08);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            transform: translateX(3px);
         }
         .ai-suggestion-label {
             font-size: 11px;
@@ -490,14 +655,33 @@ if ($settings['access_password_enabled']) {
             font-size: 14px;
         }
         .groups-container {
-            columns: 3;
-            column-gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (min-width: 1400px) {
+            .groups-container {
+                max-width: 1600px;
+            }
+        }
+
+        @media (min-width: 1800px) {
+            .groups-container {
+                max-width: 2000px;
+            }
+        }
+
+        @media (min-width: 2200px) {
+            .groups-container {
+                max-width: 2400px;
+            }
         }
         
         .group-section {
             width: 100%;
-            break-inside: avoid;
-            margin-bottom: 30px;
+            margin-bottom: 0;
         }
         
         .group-section {
@@ -508,8 +692,13 @@ if ($settings['access_password_enabled']) {
             padding: 18px;
             border: 1px solid rgba(255, 255, 255, 0.25);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-            animation: fadeInUp 0.8s ease-out;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .group-section.animate-in {
+            opacity: 1;
+            transform: translateY(0);
         }
         .group-section:hover {
             transform: translateY(-4px);
@@ -756,31 +945,6 @@ if ($settings['access_password_enabled']) {
         .message.me .message-time {
             color: rgba(255, 255, 255, 0.7);
         }
-        .admin-link {
-            text-align: center;
-            margin-top: 30px;
-            padding: 25px;
-        }
-        .admin-link a {
-            color: #fff;
-            text-decoration: none;
-            padding: 14px 32px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 30px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 600;
-            display: inline-block;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-        }
-        .admin-link a:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        }
         .no-chats {
             text-align: center;
             color: #fff;
@@ -980,28 +1144,158 @@ if ($settings['access_password_enabled']) {
                 transform: scale(1);
             }
         }
-        @media (max-width: 768px) {
-            .group-nav {
-                gap: 8px;
-                margin-bottom: 20px;
-            }
-            .group-nav-btn {
-                padding: 8px 16px;
-                font-size: 13px;
-            }
-            .groups-container {
-                columns: 1;
-                column-gap: 20px;
-            }
-            .container {
-                padding: 15px;
+        @media (max-width: 480px) {
+            .top-section {
+                padding: 10px 12px 8px 12px;
+                margin-bottom: 12px;
             }
             .header {
-                padding: 25px 15px;
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
+                margin-bottom: 0;
+                padding: 0;
+            }
+            .header-content {
+                text-align: center;
+                padding-top: 0;
             }
             .header h1 {
-                font-size: 24px;
+                font-size: 17px;
+                margin-bottom: 0;
             }
+            .header p {
+                display: none;
+            }
+            .header-search {
+                width: 100%;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .search-wrapper {
+                width: 100%;
+            }
+            .search-toolbar {
+                justify-content: center;
+                gap: 6px;
+            }
+            .toolbar-btn {
+                width: 34px;
+                height: 34px;
+                font-size: 15px;
+            }
+            .search-input {
+                padding: 8px 70px 8px 34px;
+                font-size: 12px;
+            }
+            .search-icon {
+                left: 10px;
+                font-size: 14px;
+            }
+            .ai-search-btn {
+                padding: 4px 7px;
+                font-size: 10px;
+            }
+            .ai-search-btn span:last-child {
+                display: none;
+            }
+            .ai-search-btn span:first-child {
+                margin-right: 0 !important;
+            }
+            .group-nav {
+                gap: 4px;
+                padding-top: 8px;
+                justify-content: center;
+            }
+            .group-nav-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            .container {
+                padding: 8px;
+            }
+            .groups-container {
+                max-width: 100%;
+            }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+            .top-section {
+                padding: 14px 18px 12px 18px;
+                margin-bottom: 18px;
+            }
+            .header {
+                flex-direction: row;
+                gap: 12px;
+                align-items: center;
+                margin-bottom: 10px;
+                padding: 0;
+                flex-wrap: wrap;
+            }
+            .header-content {
+                text-align: left;
+                padding-top: 0;
+                flex: 0 0 auto;
+            }
+            .header h1 {
+                font-size: 19px;
+                margin-bottom: 0;
+            }
+            .header p {
+                display: none;
+            }
+            .header-search {
+                flex: 1;
+                min-width: 240px;
+                gap: 8px;
+            }
+            .search-wrapper {
+                flex: 1;
+            }
+            .search-toolbar {
+                justify-content: center;
+                gap: 6px;
+                flex-shrink: 0;
+            }
+            .toolbar-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+            .search-input {
+                padding: 9px 80px 9px 36px;
+                font-size: 13px;
+            }
+            .search-icon {
+                left: 12px;
+                font-size: 15px;
+            }
+            .ai-search-btn {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            .ai-search-btn span:last-child {
+                display: none;
+            }
+            .group-nav {
+                gap: 6px;
+                padding-top: 10px;
+                justify-content: flex-start;
+            }
+            .group-nav-btn {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            .container {
+                padding: 12px;
+            }
+            .groups-container {
+                max-width: 500px;
+                margin: 0 auto;
+            }
+        }
+
+        @media (max-width: 768px) {
             .copy-btn {
                 opacity: 1;
                 visibility: visible;
@@ -1034,11 +1328,106 @@ if ($settings['access_password_enabled']) {
                 padding: 3px 8px;
             }
         }
-        
+
         @media (min-width: 769px) and (max-width: 1024px) {
+            .top-section {
+                padding: 18px 22px 16px 22px;
+            }
+            .header {
+                gap: 20px;
+                align-items: center;
+            }
+            .header-content {
+                min-width: 220px;
+                padding-top: 0;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .header p {
+                font-size: 13px;
+            }
+            .header-search {
+                flex: 0 1 450px;
+                min-width: 250px;
+                gap: 10px;
+            }
+            .search-input {
+                padding: 10px 95px 10px 42px;
+                font-size: 13px;
+            }
+            .search-icon {
+                left: 14px;
+                font-size: 16px;
+            }
+            .ai-search-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+            .toolbar-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 17px;
+            }
+            .group-nav {
+                padding-top: 14px;
+                gap: 8px;
+            }
+            .group-nav-btn {
+                padding: 7px 14px;
+                font-size: 12px;
+            }
             .groups-container {
-                columns: 2;
-                column-gap: 25px;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+        }
+
+        @media (min-width: 1025px) and (max-width: 1399px) {
+            .top-section {
+                padding: 20px 25px 18px 25px;
+            }
+            .header {
+                gap: 25px;
+                align-items: flex-start;
+            }
+            .header-content {
+                min-width: 250px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .header-search {
+                flex: 0 1 500px;
+                min-width: 280px;
+            }
+            .search-input {
+                padding: 11px 105px 11px 45px;
+            }
+            .groups-container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+        }
+
+        @media (min-width: 1400px) and (max-width: 1799px) {
+            .header-search {
+                flex: 0 1 650px;
+            }
+        }
+
+        @media (min-width: 1800px) {
+            .header-search {
+                flex: 0 1 750px;
+            }
+            .search-input {
+                padding: 13px 120px 13px 50px;
+                font-size: 15px;
+            }
+            .toolbar-btn {
+                width: 46px;
+                height: 46px;
+                font-size: 20px;
             }
         }
     </style>
@@ -1048,26 +1437,47 @@ if ($settings['access_password_enabled']) {
     <div class="bg-overlay"></div>
     
     <div class="container">
-        <div class="header">
-            <h1>💬 <?php echo htmlspecialchars($settings['page_title']); ?></h1>
-            <p><?php echo htmlspecialchars($settings['page_subtitle']); ?></p>
-            <?php if ($settings['access_password_enabled'] && isset($_SESSION['access_granted']) && $_SESSION['access_granted']): ?>
-                <form method="POST" style="display: inline;">
-                    <button type="submit" name="logout_access" class="logout-access-btn">🚪 退出访问</button>
-                </form>
-            <?php endif; ?>
-        </div>
+        <div class="top-section">
+            <div class="header">
+                <div class="header-content">
+                    <h1>💬 <?php echo htmlspecialchars($settings['page_title']); ?></h1>
+                    <p><?php echo htmlspecialchars($settings['page_subtitle']); ?></p>
+                </div>
+                <div class="header-search">
+                    <div class="search-wrapper">
+                        <div class="search-container">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" class="search-input" id="searchInput" placeholder="输入关键词搜索对话." oninput="searchMessages(this.value); aiSearchActive=false;" onfocus="toggleSearchResults(true)" onblur="setTimeout(() => aiSearchActive || toggleSearchResults(false), 500)" onkeypress="if(event.key==='Enter'){aiSearchActive=true; triggerAiSearch();}">
+                            <div class="search-actions">
+                                <?php if ($settings['ai_enabled'] && !empty($settings['ai_api_key'])): ?>
+                                    <button class="ai-search-btn" id="aiSearchBtn" onclick="aiSearchActive=true; setTimeout(() => triggerAiSearch(), 50);"><span>🤖</span><span>AI推荐</span></button>
+                                <?php endif; ?>
+                            </div>
+                            <div class="search-results" id="searchResults"></div>
+                        </div>
+                    </div>
+                    <div class="search-toolbar">
+                        <a href="compact.php" class="toolbar-btn" title="紧凑视图">📋</a>
+                        <a href="admin/login.php" class="toolbar-btn" title="后台管理">🔐</a>
+                        <?php if ($settings['access_password_enabled'] && isset($_SESSION['access_granted']) && $_SESSION['access_granted']): ?>
+                            <form method="POST" style="display: inline;">
+                                <button type="submit" name="logout_access" class="toolbar-btn logout-access-btn" title="退出访问">🚪</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
 
         <?php
 
         function getBingWallpaper() {
             try {
                 $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, 'http://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN');
+                curl_setopt($ch, CURLOPT_URL, 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN');
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 5);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
                 curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
                 $response = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -1078,9 +1488,9 @@ if ($settings['access_password_enabled']) {
                     if (isset($data['images']) && !empty($data['images'])) {
                         $imageUrl = $data['images'][0]['url'];
                         if (strpos($imageUrl, '//') === 0) {
-                            $imageUrl = 'http:' . $imageUrl;
+                            $imageUrl = 'https:' . $imageUrl;
                         } elseif (strpos($imageUrl, 'http') !== 0) {
-                            $imageUrl = 'http://www.bing.com' . $imageUrl;
+                            $imageUrl = 'https://www.bing.com' . $imageUrl;
                         }
                         return $imageUrl;
                     }
@@ -1117,6 +1527,8 @@ if ($settings['access_password_enabled']) {
 
         <?php
         if (!$hasChats) {
+            echo '</div>';
+            echo '</div>';
             echo '<div class="no-chats">暂无对话内容，请登录后台添加</div>';
         } else {
             // 输出分组导航
@@ -1130,19 +1542,9 @@ if ($settings['access_password_enabled']) {
                 echo '</button>';
             }
             echo '</div>';
-
-            echo '<div class="search-container">';
-            echo '<span class="search-icon">🔍</span>';
-            echo '<input type="text" class="search-input" id="searchInput" placeholder="输入关键词搜索对话." oninput="searchMessages(this.value); aiSearchActive=false;" onfocus="toggleSearchResults(true)" onblur="setTimeout(() => aiSearchActive || toggleSearchResults(false), 500)" onkeypress="if(event.key===\'Enter\'){aiSearchActive=true; triggerAiSearch();}">';
-            echo '<div class="search-actions">';
-            if ($settings['ai_enabled'] && !empty($settings['ai_api_key'])) {
-                echo '<button class="ai-search-btn" id="aiSearchBtn" onclick="aiSearchActive=true; setTimeout(() => triggerAiSearch(), 50);"><span>🤖</span><span>AI推荐</span></button>';
-            }
-            echo '</div>';
-            echo '<div class="search-results" id="searchResults"></div>';
             echo '</div>';
             
-            echo '<div class="groups-container">';
+            echo '<div class="groups-container" id="groupsContainer">';
             $groupIndex = 0;
             foreach ($groupedChats as $groupId => $groupData) {
                 if (empty($groupData['chats'])) {
@@ -1225,10 +1627,9 @@ if ($settings['access_password_enabled']) {
         }
         ?>
 
-        <div class="admin-link">
-            <a href="admin/login.php">🔐 后台管理</a>
-        </div>
     </div>
+
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()" title="回到顶部">⬆️</button>
 
     <div class="modal" id="imageModal" onclick="closeModal()">
         <span class="close-modal">&times;</span>
@@ -1247,6 +1648,122 @@ if ($settings['access_password_enabled']) {
     </div>
 
     <script>
+        function initSmartMasonry() {
+            const container = document.getElementById('groupsContainer');
+            if (!container) return;
+            
+            const items = Array.from(container.querySelectorAll('.group-section'));
+            if (items.length === 0) return;
+            
+            const width = window.innerWidth;
+            let colCount = 3;
+            let gap = 30;
+            
+            if (width <= 768) {
+                colCount = 1;
+                gap = 20;
+            } else if (width <= 1024) {
+                colCount = 2;
+                gap = 25;
+            } else if (width >= 2200) {
+                colCount = 6;
+            } else if (width >= 1800) {
+                colCount = 5;
+            } else if (width >= 1400) {
+                colCount = 4;
+            }
+            
+            container.style.display = 'flex';
+            container.style.alignItems = 'flex-start';
+            container.style.justifyContent = 'center';
+            container.style.gap = gap + 'px';
+            container.style.columns = 'auto';
+            
+            const existingCols = container.querySelectorAll('.masonry-column');
+            existingCols.forEach(col => col.remove());
+            
+            const columns = [];
+            const columnHeights = [];
+            
+            for (let i = 0; i < colCount; i++) {
+                const col = document.createElement('div');
+                col.className = 'masonry-column';
+                col.style.flex = '1';
+                col.style.display = 'flex';
+                col.style.flexDirection = 'column';
+                col.style.gap = gap + 'px';
+                col.style.minWidth = '0';
+                container.appendChild(col);
+                columns.push(col);
+                columnHeights.push(0);
+            }
+            
+            items.forEach((item, index) => {
+                item.style.marginBottom = '0';
+                const shortestColIndex = columnHeights.indexOf(Math.min(...columnHeights));
+                columns[shortestColIndex].appendChild(item);
+                columnHeights[shortestColIndex] += item.offsetHeight + gap;
+            });
+        }
+
+        let masonryTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(masonryTimeout);
+            masonryTimeout = setTimeout(initSmartMasonry, 100);
+        });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(initSmartMasonry, 300);
+                initScrollEffects();
+            });
+        } else {
+            setTimeout(initSmartMasonry, 300);
+            initScrollEffects();
+        }
+
+        function initScrollEffects() {
+            const backToTop = document.getElementById('backToTop');
+            
+            window.addEventListener('scroll', () => {
+                const scrollY = window.scrollY;
+                
+                if (scrollY > 300) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+            });
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry, index) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.classList.add('animate-in');
+                        }, index * 80);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.group-section').forEach(section => {
+                observer.observe(section);
+            });
+        }
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
         function copyMessage(btn, text) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(() => {
@@ -1304,6 +1821,17 @@ if ($settings['access_password_enabled']) {
             }
         });
         
+        function closeGroupFullscreen() {
+            document.getElementById('groupFullscreenModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        document.getElementById('groupFullscreenModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeGroupFullscreen();
+            }
+        });
+        
         function openGroupFullscreen(groupId, groupName) {
             const groupElement = document.getElementById('group-' + groupId);
             if (!groupElement) return;
@@ -1317,62 +1845,88 @@ if ($settings['access_password_enabled']) {
             bodyContainer.innerHTML = '';
             
             const gridContainer = document.createElement('div');
-            gridContainer.className = 'group-fullscreen-grid';
-            
-            chatItems.forEach(function(item, index) {
-                const itemWrapper = document.createElement('div');
-                itemWrapper.className = 'group-fullscreen-item';
-                itemWrapper.style.animationDelay = (index * 0.05) + 's';
-                itemWrapper.innerHTML = item.outerHTML;
-                gridContainer.appendChild(itemWrapper);
-            });
-            
-            bodyContainer.appendChild(gridContainer);
-            document.getElementById('groupFullscreenModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeGroupFullscreen() {
-            document.getElementById('groupFullscreenModal').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        
-        document.getElementById('groupFullscreenModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeGroupFullscreen();
-            }
-        });
-        
-        const originalOpenGroupFullscreen = openGroupFullscreen;
-        openGroupFullscreen = function(groupId, groupName) {
-            const groupElement = document.getElementById('group-' + groupId);
-            if (!groupElement) return;
-            
-            const chatList = groupElement.querySelector('.chat-list');
-            const chatItems = chatList.querySelectorAll('.chat-item');
-            
-            document.getElementById('groupFullscreenTitle').textContent = groupName;
-            
-            const bodyContainer = document.getElementById('groupFullscreenBody');
-            bodyContainer.innerHTML = '';
-            
-            const colCount = window.innerWidth <= 768 ? 1 : (window.innerWidth <= 1024 ? 2 : 3);
-            const gridContainer = document.createElement('div');
-            gridContainer.style.cssText = 'columns: ' + colCount + '; column-gap: 25px;';
+            gridContainer.id = 'fullscreenMasonry';
+            gridContainer.style.cssText = 'display: flex; align-items: flex-start; gap: 25px;';
             
             chatItems.forEach((item, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'group-fullscreen-item';
-                wrapper.style.cssText = 'break-inside: avoid; margin-bottom: 25px;';
                 wrapper.innerHTML = item.outerHTML;
+                wrapper.style.marginBottom = '0';
                 gridContainer.appendChild(wrapper);
             });
             
             bodyContainer.appendChild(gridContainer);
             
+            initFullscreenMasonry();
+            
             document.getElementById('groupFullscreenModal').classList.add('active');
             document.body.style.overflow = 'hidden';
         };
+
+        function initFullscreenMasonry() {
+            const container = document.getElementById('fullscreenMasonry');
+            if (!container) return;
+            
+            const items = Array.from(container.querySelectorAll('.group-fullscreen-item'));
+            if (items.length === 0) return;
+            
+            const width = window.innerWidth;
+            let colCount = 3;
+            let gap = 25;
+            
+            if (width <= 768) {
+                colCount = 1;
+                gap = 20;
+            } else if (width <= 1024) {
+                colCount = 2;
+                gap = 22;
+            } else if (width >= 2200) {
+                colCount = 6;
+            } else if (width >= 1800) {
+                colCount = 5;
+            } else if (width >= 1400) {
+                colCount = 4;
+            }
+            
+            container.style.gap = gap + 'px';
+            
+            const existingCols = container.querySelectorAll('.masonry-column');
+            existingCols.forEach(col => col.remove());
+            
+            const columns = [];
+            const columnHeights = [];
+            
+            for (let i = 0; i < colCount; i++) {
+                const col = document.createElement('div');
+                col.className = 'masonry-column';
+                col.style.flex = '1';
+                col.style.display = 'flex';
+                col.style.flexDirection = 'column';
+                col.style.gap = gap + 'px';
+                col.style.minWidth = '0';
+                container.appendChild(col);
+                columns.push(col);
+                columnHeights.push(0);
+            }
+            
+            items.forEach((item, index) => {
+                item.style.marginBottom = '0';
+                const shortestColIndex = columnHeights.indexOf(Math.min(...columnHeights));
+                columns[shortestColIndex].appendChild(item);
+                columnHeights[shortestColIndex] += item.offsetHeight + gap;
+            });
+        }
+
+        let fullscreenResizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(fullscreenResizeTimeout);
+            fullscreenResizeTimeout = setTimeout(() => {
+                if (document.getElementById('groupFullscreenModal').classList.contains('active')) {
+                    initFullscreenMasonry();
+                }
+            }, 150);
+        });
 
         const allChats = <?php
             $chatsData = [];
@@ -1683,6 +2237,19 @@ if ($settings['access_password_enabled']) {
                 toggleSearchResults(false);
             }
         });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('PWA ServiceWorker registered successfully');
+                    })
+                    .catch(err => {
+                        console.log('PWA ServiceWorker registration failed:', err);
+                    });
+            });
+        }
     </script>
 </body>
 </html>

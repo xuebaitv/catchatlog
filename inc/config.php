@@ -1,5 +1,4 @@
 <?php
-define('ADMIN_PASSWORD', 'admin123');
 define('CHAT_DIR', __DIR__ . '/../chat/');
 define('PHOTOS_DIR', __DIR__ . '/../photos/');
 define('PHOTOS_URL', 'photos/');
@@ -12,11 +11,12 @@ function getSettings() {
         'page_subtitle' => '真实对话记录展示',
         'access_password_enabled' => false,
         'access_password' => 'view123',
+        'admin_password' => 'admin123',
         'ai_enabled' => false,
         'ai_api_url' => 'https://api.openai.com/v1/chat/completions',
         'ai_api_key' => '',
         'ai_model' => 'gpt-3.5-turbo',
-        'ai_system_prompt' => '你是一个专业的话术顾问。请参考以下历史对话记录，根据用户的问题给出最合适的回复而不是建议。不需要又回复内容以外的任何内容包括符号，回复要专业、友好，简洁，符合真实聊天场景，尽量靠近充值目标，并尽量根据我提供的全部对话中的内容进行回复。'
+        'ai_system_prompt' => '你是一个专业的话术顾问。请参考以下历史对话记录，根据用户的问题给出最合适的回复而不是建议。不需要有回复内容以外的任何内容包括符号，回复要专业、简短，符合真实聊天场景，尽量靠近充值目标，并尽量根据我提供的全部对话中的内容以同样是消费者的身份进行回复。'
     ];
     
     if (!file_exists(SETTINGS_FILE)) {
@@ -55,4 +55,7 @@ function initializeDirectories() {
 }
 
 initializeDirectories();
+
+$settings = getSettings();
+define('ADMIN_PASSWORD', $settings['admin_password']);
 ?>
