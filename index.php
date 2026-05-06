@@ -1648,7 +1648,9 @@ if ($settings['access_password_enabled']) {
     </div>
 
     <script>
-        function initSmartMasonry() {
+        let lastColCount = -1;
+        
+        function initSmartMasonry(force = false) {
             const container = document.getElementById('groupsContainer');
             if (!container) return;
             
@@ -1673,11 +1675,18 @@ if ($settings['access_password_enabled']) {
                 colCount = 4;
             }
             
+            if (!force && colCount === lastColCount) {
+                return;
+            }
+            lastColCount = colCount;
+            
             container.style.display = 'flex';
             container.style.alignItems = 'flex-start';
             container.style.justifyContent = 'center';
             container.style.gap = gap + 'px';
             container.style.columns = 'auto';
+            container.style.minHeight = '0';
+            container.style.willChange = 'auto';
             
             const existingCols = container.querySelectorAll('.masonry-column');
             existingCols.forEach(col => col.remove());
@@ -1693,6 +1702,8 @@ if ($settings['access_password_enabled']) {
                 col.style.flexDirection = 'column';
                 col.style.gap = gap + 'px';
                 col.style.minWidth = '0';
+                col.style.willChange = 'auto';
+                col.style.transform = 'translateZ(0)';
                 container.appendChild(col);
                 columns.push(col);
                 columnHeights.push(0);
@@ -1700,6 +1711,8 @@ if ($settings['access_password_enabled']) {
             
             items.forEach((item, index) => {
                 item.style.marginBottom = '0';
+                item.style.willChange = 'auto';
+                item.style.transform = 'translateZ(0)';
                 const shortestColIndex = columnHeights.indexOf(Math.min(...columnHeights));
                 columns[shortestColIndex].appendChild(item);
                 columnHeights[shortestColIndex] += item.offsetHeight + gap;
@@ -1707,18 +1720,28 @@ if ($settings['access_password_enabled']) {
         }
 
         let masonryTimeout;
-        window.addEventListener('resize', () => {
+        let lastWindowWidth = window.innerWidth;
+        
+        function debouncedMasonryUpdate() {
             clearTimeout(masonryTimeout);
-            masonryTimeout = setTimeout(initSmartMasonry, 100);
-        });
+            masonryTimeout = setTimeout(() => {
+                const currentWidth = window.innerWidth;
+                if (Math.abs(currentWidth - lastWindowWidth) > 50) {
+                    lastWindowWidth = currentWidth;
+                    initSmartMasonry();
+                }
+            }, 150);
+        }
+        
+        window.addEventListener('resize', debouncedMasonryUpdate);
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(initSmartMasonry, 300);
+                setTimeout(() => initSmartMasonry(true), 300);
                 initScrollEffects();
             });
         } else {
-            setTimeout(initSmartMasonry, 300);
+            setTimeout(() => initSmartMasonry(true), 300);
             initScrollEffects();
         }
 
@@ -1858,13 +1881,16 @@ if ($settings['access_password_enabled']) {
             
             bodyContainer.appendChild(gridContainer);
             
-            initFullscreenMasonry();
+            initFullscreenMasonry(true);
             
             document.getElementById('groupFullscreenModal').classList.add('active');
             document.body.style.overflow = 'hidden';
         };
 
-        function initFullscreenMasonry() {
+        let lastFullscreenColCount = -1;
+        let lastFullscreenWidth = -1;
+
+        function initFullscreenMasonry(force = false) {
             const container = document.getElementById('fullscreenMasonry');
             if (!container) return;
             
@@ -1889,7 +1915,14 @@ if ($settings['access_password_enabled']) {
                 colCount = 4;
             }
             
+            if (!force && colCount === lastFullscreenColCount && Math.abs(width - lastFullscreenWidth) <= 50) {
+                return;
+            }
+            lastFullscreenColCount = colCount;
+            lastFullscreenWidth = width;
+            
             container.style.gap = gap + 'px';
+            container.style.willChange = 'auto';
             
             const existingCols = container.querySelectorAll('.masonry-column');
             existingCols.forEach(col => col.remove());
@@ -1905,6 +1938,7 @@ if ($settings['access_password_enabled']) {
                 col.style.flexDirection = 'column';
                 col.style.gap = gap + 'px';
                 col.style.minWidth = '0';
+                col.style.transform = 'translateZ(0)';
                 container.appendChild(col);
                 columns.push(col);
                 columnHeights.push(0);
@@ -1912,6 +1946,7 @@ if ($settings['access_password_enabled']) {
             
             items.forEach((item, index) => {
                 item.style.marginBottom = '0';
+                item.style.transform = 'translateZ(0)';
                 const shortestColIndex = columnHeights.indexOf(Math.min(...columnHeights));
                 columns[shortestColIndex].appendChild(item);
                 columnHeights[shortestColIndex] += item.offsetHeight + gap;
@@ -1925,7 +1960,7 @@ if ($settings['access_password_enabled']) {
                 if (document.getElementById('groupFullscreenModal').classList.contains('active')) {
                     initFullscreenMasonry();
                 }
-            }, 150);
+            }, 200);
         });
 
         const allChats = <?php
