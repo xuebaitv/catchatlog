@@ -473,6 +473,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: login.php');
                 exit;
                 break;
+
+            case 'reset_all':
+                $resetSuccess = true;
+                $messages = [];
+
+                $mindmapDir = __DIR__ . '/../mindmap/data';
+                if (is_dir($mindmapDir)) {
+                    $files = glob($mindmapDir . '/*.json');
+                    foreach ($files as $file) {
+                        if (unlink($file)) {
+                            $messages[] = "已删除思维导图文件: " . basename($file);
+                        } else {
+                            $resetSuccess = false;
+                            $messages[] = "删除思维导图文件失败: " . basename($file);
+                        }
+                    }
+                } else {
+                    @mkdir($mindmapDir, 0777, true);
+                }
+
+                $photosDir = __DIR__ . '/../photos';
+                if (is_dir($photosDir)) {
+                    $files = glob($photosDir . '/*');
+                    foreach ($files as $file) {
+                        if (is_file($file)) {
+                            if (unlink($file)) {
+                                $messages[] = "已删除图片文件: " . basename($file);
+                            } else {
+                                $resetSuccess = false;
+                                $messages[] = "删除图片文件失败: " . basename($file);
+                            }
+                        }
+                    }
+                } else {
+                    @mkdir($photosDir, 0777, true);
+                }
+
+                $memoFile = __DIR__ . '/../memo/memos.json';
+                if (file_exists($memoFile)) {
+                    if (unlink($memoFile)) {
+                        $messages[] = "已删除备忘录数据";
+                    } else {
+                        $resetSuccess = false;
+                        $messages[] = "删除备忘录数据失败";
+                    }
+                }
+
+                $chatDir = __DIR__ . '/../chat';
+                if (is_dir($chatDir)) {
+                    $files = glob($chatDir . '/*.json');
+                    foreach ($files as $file) {
+                        if (basename($file) !== 'settings.json' && basename($file) !== 'groups.json' && basename($file) !== 'data_version.json') {
+                            if (unlink($file)) {
+                                $messages[] = "已删除会话文件: " . basename($file);
+                            } else {
+                                $resetSuccess = false;
+                                $messages[] = "删除会话文件失败: " . basename($file);
+                            }
+                        }
+                    }
+                } else {
+                    @mkdir($chatDir, 0777, true);
+                }
+
+                $settingsFile = __DIR__ . '/../chat/settings.json';
+                if (file_exists($settingsFile)) {
+                    $defaultSettings = [
+                        'page_title' => '实时对话演示',
+                        'page_subtitle' => '这是一段可以自定义的副标题',
+                        'admin_password' => 'admin123',
+                        'access_password_enabled' => false,
+                        'access_password' => 'view123',
+                        'ai_enabled' => false,
+                        'ai_api_url' => 'https://api.openai.com/v1/chat/completions',
+                        'ai_api_key' => '',
+                        'ai_model' => 'gpt-3.5-turbo',
+                        'ai_system_prompt' => '你是一个专业的客服助手，请帮助用户快速准确地回复客户问题。'
+                    ];
+                    if (file_put_contents($settingsFile, json_encode($defaultSettings, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT))) {
+                        $messages[] = "已重置系统设置为初始值";
+                    } else {
+                        $resetSuccess = false;
+                        $messages[] = "重置系统设置失败";
+                    }
+                } else {
+                    @file_put_contents($settingsFile, json_encode([
+                        'page_title' => '实时对话演示',
+                        'page_subtitle' => '这是一段可以自定义的副标题',
+                        'admin_password' => 'admin123',
+                        'access_password_enabled' => false,
+                        'access_password' => 'view123',
+                        'ai_enabled' => false,
+                        'ai_api_url' => 'https://api.openai.com/v1/chat/completions',
+                        'ai_api_key' => '',
+                        'ai_model' => 'gpt-3.5-turbo',
+                        'ai_system_prompt' => '你是一个专业的客服助手，请帮助用户快速准确地回复客户问题。'
+                    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+                    $messages[] = "已创建初始系统设置";
+                }
+
+                $groupsFile = __DIR__ . '/../chat/groups.json';
+                if (file_exists($groupsFile)) {
+                    if (unlink($groupsFile)) {
+                        $messages[] = "已删除分组数据";
+                    } else {
+                        $resetSuccess = false;
+                        $messages[] = "删除分组数据失败";
+                    }
+                }
+
+                $dataVersionFile = __DIR__ . '/../chat/data_version.json';
+                if (file_exists($dataVersionFile)) {
+                    @file_put_contents($dataVersionFile, json_encode(['version' => 1]));
+                }
+
+                $message = $resetSuccess ? '系统已完全重置为初始状态！' : '部分重置操作失败，请检查文件权限';
+                $messageType = $resetSuccess ? 'success' : 'error';
+                break;
         }
 
         if ($isAjax) {
@@ -791,6 +909,11 @@ foreach ($chats as $chat) {
         <div class="two-col">
             <div class="card" id="card-settings">
                 <h2>⚙️ 页面设置</h2>
+                <div style="padding: 20px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="font-weight: bold; color: #856404; margin-bottom: 10px;">⚠️ 危险操作区域</div>
+                    <p style="margin-bottom: 15px; color: #856404;">此操作将删除所有数据并还原为初始设置，包括思维导图、备忘录、会话数据等，操作不可恢复！</p>
+                    <button type="button" class="btn btn-danger" onclick="openResetConfirmModal()">🔄 一键重置系统</button>
+                </div>
                 <form onsubmit="return ajaxFormSubmit(event, 'update_settings')">
                     <?php $settings = getSettings(); ?>
                     <div class="form-switch">
@@ -1014,10 +1137,73 @@ foreach ($chats as $chat) {
         <img src="" id="previewImage" style="max-width: 90%; max-height: 90%; border-radius: 16px;">
     </div>
 
+    <div class="modal" id="resetConfirmModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeResetConfirmModal()">&times;</span>
+            <h3 style="color: #ff4444;">⚠️ 危险确认</h3>
+            <div style="padding: 15px; background: #ffebee; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f44336;">
+                <p style="color: #c62828; font-weight: bold; margin-bottom: 10px;">此操作将：</p>
+                <ul style="color: #c62828; padding-left: 20px; margin-bottom: 10px;">
+                    <li>删除所有思维导图数据</li>
+                    <li>删除所有备忘录数据</li>
+                    <li>删除所有会话文件</li>
+                    <li>删除所有分组数据</li>
+                    <li>删除photos文件夹内所有图片文件</li>
+                    <li>还原系统设置为初始值</li>
+                </ul>
+                <p style="color: #c62828; font-weight: bold;">⚠️ 此操作不可恢复！</p>
+            </div>
+            <p style="margin-bottom: 20px;">请再次确认您要执行此操作！</p>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeResetConfirmModal()">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmResetBtn" onclick="confirmResetAll()">确认重置所有数据</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let messageIndex = 3;
         const chatData = <?php echo json_encode($chats); ?>;
         const groupsData = <?php echo json_encode($groups); ?>;
+
+        function openResetConfirmModal() {
+            document.getElementById('resetConfirmModal').classList.add('active');
+        }
+
+        function closeResetConfirmModal() {
+            document.getElementById('resetConfirmModal').classList.remove('active');
+        }
+
+        async function confirmResetAll() {
+            const btn = document.getElementById('confirmResetBtn');
+            setButtonLoading(btn, true);
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'reset_all');
+                formData.append('X-Requested-With', 'XMLHttpRequest');
+
+                const response = await fetch('index.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                console.log('Reset response:', result);
+
+                if (result.success) {
+                    showToast(result.message || '系统重置成功', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(result.message || '重置失败', 'error');
+                }
+            } catch (e) {
+                console.error('Reset error:', e);
+                showMessage('请求失败: ' + e.message, 'error');
+            } finally {
+                setButtonLoading(btn, false);
+            }
+        }
 
         function showMessage(text, type = 'success') {
             const container = document.getElementById('messageContainer');
