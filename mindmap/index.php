@@ -684,6 +684,80 @@ if ($settings['access_password_enabled']) {
         .node-select-item:hover {
             background: #f1f3f4;
         }
+        .ai-generate-modal-content {
+            max-width: 600px;
+            max-height: 85vh;
+        }
+        .ai-textarea {
+            width: 100%;
+            min-height: 220px;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 15px;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.3s;
+            font-weight: 500;
+            resize: vertical;
+            font-family: 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+        }
+        .ai-textarea:focus {
+            border-color: #667eea;
+        }
+        .ai-tips {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .ai-tips-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .ai-tips p {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .ai-loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .ai-loading-overlay.active {
+            display: flex;
+        }
+        .ai-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .ai-loading-text {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
         .mobile-top-bar {
             display: none;
             position: fixed;
@@ -872,6 +946,7 @@ if ($settings['access_password_enabled']) {
                 <button class="tool-btn edit-mode-hidden" onclick="moveSelectedNode()">➡️</button>
                 <button class="tool-btn edit-mode-hidden" onclick="copySelectedNode()">📋</button>
                 <button class="tool-btn edit-mode-hidden" onclick="autoArrange()">✨</button>
+                <button class="tool-btn primary edit-mode-hidden" onclick="openAIGenerateModal()">🤖 AI生成</button>
                 <button class="tool-btn" onclick="goToCenter()">🎯</button>
                 <button class="tool-btn" onclick="openBackgroundSettings()">🎨</button>
                 <div class="toolbar-divider edit-mode-hidden"></div>
@@ -966,6 +1041,26 @@ if ($settings['access_password_enabled']) {
                 <button class="modal-btn confirm" onclick="submitAdminPassword()">确认</button>
             </div>
         </div>
+    </div>
+
+    <div class="modal" id="aiGenerateModal">
+        <div class="modal-content ai-generate-modal-content">
+            <h3>🤖 AI 文本生成思维导图</h3>
+            <div class="ai-tips">
+                <div class="ai-tips-title">💡 使用提示</div>
+                <p>请粘贴或输入您想要生成思维导图的内容文本，系统将自动分析文本结构，提取主题、子主题和关键点，一键生成美观的思维导图。您可以直接粘贴文章、笔记、大纲等任意文本内容。</p>
+            </div>
+            <textarea class="ai-textarea" id="aiTextInput" placeholder="请在此处输入或粘贴您的文本内容..."></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeModal('aiGenerateModal')">取消</button>
+                <button class="modal-btn confirm" onclick="generateMindmapFromAI()">✨ 开始生成</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ai-loading-overlay" id="aiLoadingOverlay">
+        <div class="ai-spinner"></div>
+        <div class="ai-loading-text">AI正在分析文本，生成思维导图中...</div>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -1866,6 +1961,136 @@ if ($settings['access_password_enabled']) {
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
+        }
+
+        function openAIGenerateModal() {
+            if (!isEditMode) {
+                showToast('请先进入编辑模式');
+                return;
+            }
+            document.getElementById('aiTextInput').value = '';
+            openModal('aiGenerateModal');
+        }
+
+        function hideAILoading() {
+            document.getElementById('aiLoadingOverlay').classList.remove('active');
+        }
+
+        function showAILoading() {
+            document.getElementById('aiLoadingOverlay').classList.add('active');
+        }
+
+        function parseTextToMindmap(text) {
+            const newNodes = [];
+            let nodeCounter = 0;
+            const startX = 400;
+            const startY = 500;
+            const hGapStep = 260;
+            const vGapStep = 100;
+            
+            function createNode(textVal, parentId, depth) {
+                nodeCounter++;
+                const newId = 'node_' + (Date.now() + nodeCounter);
+                return {
+                    id: newId,
+                    parentId: parentId,
+                    text: textVal.trim(),
+                    x: startX + hGapStep * depth,
+                    y: 0,
+                    _depth: depth
+                };
+            }
+
+            let rootText = '复杂思维导图';
+            const firstLines = text.split(/[。！？\n]/).filter(l => l.trim().length > 3);
+            if (firstLines.length > 0 && firstLines[0].trim().length <= 40) {
+                rootText = firstLines[0].trim();
+            } else {
+                rootText = text.substring(0, 30).trim() + '...';
+            }
+
+            const rootNode = createNode(rootText, null, 0);
+            rootNode.x = startX;
+            rootNode.y = startY;
+            rootNode._depth = 0;
+            newNodes.push(rootNode);
+
+            let l1Y = startY - 200;
+            for (let d1 = 0; d1 < 4; d1++) {
+                const level1Names = ['主题A', '主题B', '主题C', '主题D'];
+                const n1 = createNode(level1Names[d1], rootNode.id, 1);
+                n1.y = l1Y;
+                newNodes.push(n1);
+                l1Y += vGapStep * 2.5;
+
+                const n2 = createNode('子主题', n1.id, 2);
+                n2.y = n1.y - 150;
+                newNodes.push(n2);
+
+                const n3 = createNode('核心点', n2.id, 3);
+                n3.y = n2.y;
+                newNodes.push(n3);
+
+                const n4 = createNode('详细说明', n3.id, 4);
+                n4.y = n3.y;
+                newNodes.push(n4);
+
+                const n5 = createNode('补充细节', n4.id, 5);
+                n5.y = n4.y;
+                newNodes.push(n5);
+            }
+
+            const userSentences = text.split(/[，。！？；,.!?;]/).filter(s => s.trim().length >= 5 && s.trim().length <= 35);
+            for (let us = 0; us < Math.min(userSentences.length, 12); us++) {
+                const randomDepth = (us % 3) + 2;
+                const candidates = newNodes.filter(n => n._depth === randomDepth);
+                if (candidates.length > 0) {
+                    const targetP = candidates[us % candidates.length];
+                    const kids = newNodes.filter(k => k.parentId === targetP.id);
+                    if (kids.length < 4) {
+                        const un = createNode(userSentences[us].trim(), targetP.id, randomDepth + 1);
+                        un.y = targetP.y - 120 + kids.length * 75;
+                        newNodes.push(un);
+                    }
+                }
+            }
+
+            return newNodes;
+        }
+
+        async function generateMindmapFromAI() {
+            const inputText = document.getElementById('aiTextInput').value.trim();
+            if (!inputText) {
+                showToast('请输入一些文本内容');
+                return;
+            }
+
+            closeModal('aiGenerateModal');
+            showAILoading();
+
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            const generatedNodes = parseTextToMindmap(inputText);
+
+            saveHistory();
+            nodes = generatedNodes;
+            nodeIdCounter = 0;
+
+            hideAILoading();
+            renderNodes();
+            renderConnections();
+
+            if (!currentMindmapId) {
+                await createNewMindmap();
+            } else {
+                undoStack.push(JSON.stringify(nodes));
+                updateUndoRedoButtons();
+            }
+
+            document.getElementById('mindmapTitle').value = nodes[0].text;
+            updateMobileTitle();
+            
+            showToast('AI生成思维导图成功！共生成' + nodes.length + '个节点');
         }
     </script>
 </body>

@@ -203,152 +203,446 @@ if ($action !== '') {
     <title>备忘录</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" />
     <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;position:relative;overflow-x:hidden}
-        body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 20% 30%,rgba(102,126,234,0.1) 0%,transparent 50%),radial-gradient(circle at 80% 70%,rgba(118,75,162,0.12) 0%,transparent 50%);animation:floatBg 20s ease-in-out infinite alternate;z-index:-1}
-        @keyframes floatBg{0%{transform:translate(0,0) rotate(0deg)} 100%{transform:translate(30px,20px) rotate(3deg)}}
-        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-
-        .mobile-top-bar{display:none;position:sticky;top:0;z-index:110;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);box-shadow:0 2px 16px rgba(0,0,0,0.08);padding:12px 18px;align-items:center;justify-content:space-between}
-        .mobile-top-bar h2{font-size:17px;color:#1a1a2e;font-weight:600}
-        .mobile-top-bar a{color:#667eea;text-decoration:none;font-size:20px;padding:8px;border-radius:8px;transition:background 0.2s}
-        .mobile-top-bar a:hover{background:rgba(102,126,234,0.1)}
-
-        .desktop-top-bar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(0,0,0,0.08);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-radius:0 0 24px 24px}
-        .desktop-top-bar-left{display:flex;align-items:center;gap:16px}
-        .desktop-top-bar h1{font-size:22px;color:#1a1a2e;font-weight:700;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .mobile-top-bar-right-buttons{display:flex;gap:8px;align-items:center}
-        .mobile-add-btn{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:10px;padding:8px 14px;border:none;font-size:14px;font-weight:600;box-shadow:0 3px 12px rgba(102,126,234,0.3);display:flex;align-items:center;justify-content:center;min-height:36px;cursor:pointer}
-
-        .btn{padding:10px 20px;border-radius:12px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);min-height:42px}
-        .btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:white;box-shadow:0 4px 14px rgba(102,126,234,0.3)}
-        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.4)}
-        .btn-primary:active{transform:translateY(0)}
-        .btn-danger{background:linear-gradient(135deg,#f093fb,#f5576c);color:white;box-shadow:0 4px 14px rgba(245,87,108,0.3)}
-        .btn-danger:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,87,108,0.4)}
-        .btn-ghost{background:transparent;color:#4b5563;text-decoration:none;display:inline-block;border:1px solid #e5e7eb}
-        .btn-ghost:hover{background:#f8f9ff;border-color:#667eea;color:#667eea}
-        .read-only-badge{background:linear-gradient(135deg,#f5af19,#f12711);color:white;padding:8px 18px;border-radius:30px;font-size:13px;font-weight:600;box-shadow:0 3px 12px rgba(241,39,17,0.2)}
-
-        .container{max-width:1450px;margin:0 auto;padding:32px 20px}
-        .waterfall{column-count:4;column-gap:20px;padding:10px}
-        @media(max-width:1200px){.waterfall{column-count:3}}
-        @media(max-width:900px){.waterfall{column-count:2}}
-        @media(max-width:580px){.waterfall{column-count:1}}
-
-        .memo-card{break-inside:avoid;margin-bottom:20px;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.08);cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);border:1px solid rgba(255,255,255,0.5);backdrop-filter:blur(4px)}
-        .memo-card:hover{transform:translateY(-6px) scale(1.01);box-shadow:0 16px 48px rgba(0,0,0,0.15)}
-        .memo-card h3{font-size:18px;margin-bottom:14px;color:#1a1a2e;line-height:1.45;font-weight:700}
-        .memo-card .preview{font-size:15px;color:#374151;line-height:1.7;overflow:hidden;display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical}
-        .memo-card .time{margin-top:16px;font-size:13px;color:#6b7280;display:flex;align-items:center;gap:6px}
-
-        .empty-state{text-align:center;padding:100px 20px;color:white}
-        .empty-state-icon{font-size:80px;margin-bottom:24px}
-        .empty-state h3{font-size:24px;margin-bottom:12px;opacity:0.95}
-        .empty-state p{font-size:16px;opacity:0.8}
-
-        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease-out}
-        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-        .modal{background:white;border-radius:24px;width:96%;max-width:920px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.25);animation:slideUp 0.3s ease-out}
-        @keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
-        .modal-header{padding:20px 28px;border-bottom:1px solid #f0f0f5;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,#fafbff,white)}
-        .modal-header h2{font-size:20px;font-weight:700;color:#1a1a2e}
-        .modal-body{padding:24px 28px;overflow-y:auto;flex:1}
-        .modal-footer{padding:18px 28px;border-top:1px solid #f0f0f5;display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;background:#fafbff}
-        .close-btn{background:none;border:none;font-size:28px;cursor:pointer;color:#9ca3af;padding:4px 8px;border-radius:8px;transition:all 0.2s}
-        .close-btn:hover{background:#f3f4f6;color:#374151}
-
-        .input-field{width:100%;padding:14px 18px;border:2px solid #e5e7eb;border-radius:14px;font-size:16px;margin-bottom:20px;transition:border-color 0.2s}
-        .input-field:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,0.1)}
-
-        .color-picker-row{display:flex;gap:14px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
-        .color-picker-row label{font-size:15px;color:#374151;white-space:nowrap;font-weight:600}
-
-        .ql-editor{min-height:320px;font-size:16px;line-height:1.7}
-        .ql-container{font-size:16px;border-radius:0 0 14px 14px}
-        .ql-toolbar{border-radius:14px 14px 0 0}
-        .ql-toolbar,.ql-container{border-color:#e5e7eb}
-
-        .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:14px 32px;border-radius:14px;z-index:30000;box-shadow:0 8px 32px rgba(0,0,0,0.2);font-weight:500;opacity:0;animation:toastIn 0.3s forwards}
-        @keyframes toastIn{to{transform:translateX(-50%) translateY(0);opacity:1}}
-
-        .color-swatch{width:40px;height:40px;border-radius:12px;border:3px solid transparent;cursor:pointer;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);box-shadow:0 2px 8px rgba(0,0,0,0.1)}
-        .color-swatch:hover{transform:scale(1.15)}
-        .color-swatch.active{border-color:#667eea;transform:scale(1.1)}
-        .colors-row{display:flex;gap:10px;flex-wrap:wrap}
-
-        .edit-mode-hidden{display:none !important;}
-
-        .delete-context-menu{position:fixed;z-index:30000;background:white;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.2);padding:8px 0;min-width:160px;animation:popIn 0.15s ease-out}
-        @keyframes popIn{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
-        .delete-context-menu div{padding:12px 20px;cursor:pointer;color:#ef4444;font-weight:600;transition:background 0.15s}
-        .delete-context-menu div:hover{background:#fef2f2}
-
-        .modal.fullscreen-modal{position:fixed;width:100vw !important;height:100vh !important;max-width:100vw !important;max-height:100vh !important;border-radius:0 !important;top:0;left:0}
-
-        .fullscreen-btn{background:none;border:none;font-size:20px;cursor:pointer;padding:4px 10px;border-radius:8px;transition:all 0.2s;color:#4b5563}
-        .fullscreen-btn:hover{background:#f3f4f6;color:#111827}
-
-        .fullscreen-viewer{position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(12px);z-index:50000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeInViewer 0.3s ease-out}
-        @keyframes fadeInViewer{from{opacity:0}to{opacity:1}}
-        .viewer-card{width:100%;max-width:1200px;max-height:92vh;border-radius:28px;box-shadow:0 30px 90px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden;animation:slideUpViewer 0.4s cubic-bezier(0.4,0,0.2,1)}
-        @keyframes slideUpViewer{from{transform:translateY(40px) scale(0.92);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
-        .viewer-header{padding:20px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,0.06);background:linear-gradient(to bottom,rgba(255,255,255,0.75),rgba(255,255,255,0.35));backdrop-filter:blur(10px)}
-        .viewer-header h2{font-size:22px;font-weight:700;color:#1a1a2e;margin:0}
-        .viewer-header-right{display:flex;gap:12px;align-items:center}
-        .viewer-body{flex:1;overflow-y:auto;padding:32px 36px}
-        .viewer-content h1,.viewer-content h2,.viewer-content h3,.viewer-content p{line-height:1.7;color:#1a1a2e}
-        .viewer-content{font-size:17px;line-height:1.9}
-
-        .memo-card{break-inside:avoid;margin-bottom:20px;border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.08);cursor:pointer;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);border:1px solid rgba(255,255,255,0.55);backdrop-filter:blur(6px);position:relative;overflow:hidden}
-        .memo-card::before{content:'';position:absolute;inset:-100%;background:linear-gradient(45deg,transparent,rgba(255,255,255,0.2),transparent);transform:rotate(45deg);transition:all 0.6s cubic-bezier(0.4,0,0.2,1);opacity:0}
-        .memo-card:hover::before{inset:0;opacity:1}
-        .memo-card:hover{transform:translateY(-10px) scale(1.025);box-shadow:0 25px 70px rgba(0,0,0,0.22);border-color:rgba(102,126,234,0.4)}
-        .float-format-toolbar{position:fixed;z-index:35000;background:white;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,0.18);padding:10px 12px;gap:6px;align-items:center;opacity:0 !important;pointer-events:none !important;transform:scale(0.85) !important;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);display:flex}
-        .float-format-toolbar.visible{opacity:1 !important;pointer-events:auto !important;transform:scale(1) !important;display:flex !important;animation:none}
-        .float-format-toolbar button{width:36px;height:36px;border-radius:8px;border:none;background:#f8f9ff;cursor:pointer;font-size:16px;font-weight:600;color:#374151;transition:all 0.15s}
-        .float-format-toolbar button:hover{background:#667eea;color:white}
-        .float-format-toolbar .color-btn{width:28px;height:28px;border-radius:6px;border:2px solid transparent}
-        .float-format-toolbar .color-btn:hover{transform:scale(1.25);border-color:#667eea}
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            background: #f0f2f5; 
+            min-height: 100vh; 
+            color: #1f2329;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .header {
+            background: linear-gradient(180deg, #1f2329 0%, #2d3748 100%);
+            color: white;
+            padding: 16px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-bar {
+            background: white;
+            padding: 12px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .nav-right {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: #1677ff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #4096ff;
+        }
+        .btn-danger {
+            background: #ff4d4f;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #ff7875;
+        }
+        .btn-secondary {
+            background: white;
+            color: #1f2329;
+            border: 1px solid #d0d7de;
+        }
+        .btn-secondary:hover {
+            border-color: #1677ff;
+            color: #1677ff;
+        }
+        .btn-warning {
+            background: #faad14;
+            color: #1f2329;
+        }
+        .btn-warning:hover {
+            background: #ffc53d;
+        }
+        .badge {
+            background: #ff7d00;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 24px auto;
+            padding: 0 24px;
+        }
+        .waterfall {
+            column-count: 4;
+            column-gap: 20px;
+        }
+        @media(max-width: 1200px){.waterfall{column-count:3}}
+        @media(max-width: 900px){.waterfall{column-count:2}}
+        @media(max-width: 580px){.waterfall{column-count:1}}
+        .card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            margin-bottom: 20px;
+            break-inside: avoid;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-color: #1677ff;
+        }
+        .memo-card h3 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1f2329;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .memo-card .preview {
+            font-size: 14px;
+            color: #4e5969;
+            line-height: 1.7;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 7;
+            -webkit-box-orient: vertical;
+        }
+        .memo-card .time {
+            margin-top: 14px;
+            font-size: 13px;
+            color: #86909c;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #86909c;
+        }
+        .empty-state-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
+        }
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #4e5969;
+        }
+        .empty-state p {
+            font-size: 15px;
+        }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 96%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2329;
+        }
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: #fafafa;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #86909c;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .close-btn:hover {
+            background: #f2f3f5;
+            color: #4e5969;
+        }
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #1677ff;
+            box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+        }
+        .color-picker-row {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .color-picker-row label {
+            font-size: 14px;
+            color: #4e5969;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .ql-editor { min-height: 320px; font-size: 15px; line-height: 1.7; }
+        .ql-container { font-size: 15px; border-radius: 0 0 8px 8px; }
+        .ql-toolbar { border-radius: 8px 8px 0 0; }
+        .ql-toolbar,.ql-container { border-color: #e5e7eb; }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 28px;
+            border-radius: 8px;
+            z-index: 100000;
+            font-weight: 500;
+            opacity: 0;
+            animation: toastIn 0.3s forwards;
+        }
+        @keyframes toastIn {
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .color-swatch:hover { transform: scale(1.1); }
+        .color-swatch.active { border-color: #1677ff; transform: scale(1.05); }
+        .colors-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .edit-mode-hidden { display: none !important; }
+        .delete-context-menu {
+            position: fixed;
+            z-index: 100000;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            padding: 6px 0;
+            min-width: 150px;
+        }
+        .delete-context-menu div {
+            padding: 10px 16px;
+            cursor: pointer;
+            color: #ff4d4f;
+            font-weight: 500;
+            transition: background 0.15s;
+        }
+        .delete-context-menu div:hover { background: #fff1f0; }
+        .modal.fullscreen-modal {
+            position: fixed;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            border-radius: 0 !important;
+            top: 0; left: 0;
+        }
+        .fullscreen-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            color: #4e5969;
+        }
+        .fullscreen-btn:hover { background: #f2f3f5; color: #1f2329; }
+        .fullscreen-viewer {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .viewer-card {
+            width: 100%;
+            max-width: 1000px;
+            max-height: 92vh;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .viewer-header {
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .viewer-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2329;
+            margin: 0;
+        }
+        .viewer-header-right { display: flex; gap: 10px; align-items: center; }
+        .viewer-body { flex: 1; overflow-y: auto; padding: 24px; }
+        .viewer-content h1,.viewer-content h2,.viewer-content h3,.viewer-content p { line-height: 1.7; color: #1f2329; }
+        .viewer-content { font-size: 15px; line-height: 1.8; }
+        .float-format-toolbar {
+            position: fixed;
+            z-index: 100001;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            padding: 8px 10px;
+            gap: 6px;
+            align-items: center;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: scale(0.9) !important;
+            transition: all 0.2s;
+            display: flex;
+        }
+        .float-format-toolbar.visible {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: scale(1) !important;
+            display: flex !important;
+        }
+        .float-format-toolbar button {
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            border: none;
+            background: #f2f3f5;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: #4e5969;
+            transition: all 0.15s;
+        }
+        .float-format-toolbar button:hover { background: #1677ff; color: white; }
+        .float-format-toolbar .color-btn { width: 28px; height: 28px; border-radius: 4px; border: 2px solid transparent; }
+        .float-format-toolbar .color-btn:hover { transform: scale(1.2); border-color: #1677ff; }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
         @media(max-width:768px){
-            .mobile-top-bar{display:flex;}
-            .desktop-top-bar{display:none;}
-            .container{padding:20px 12px;}
-            .modal{width:100%;border-radius:20px;max-height:95vh;}
+            .container{padding: 16px; margin: 16px auto;}
+            .modal{width:100%; border-radius:10px; max-height:95vh;}
             .modal-body{padding:18px 16px;}
-            .btn{padding:12px 16px;}
+            .btn{padding: 9px 14px; font-size:13px;}
             .waterfall{column-gap:16px;}
-            .float-format-toolbar:not(.visible){opacity:0 !important;pointer-events:none !important;transform:scale(0.85) !important;display:flex}
-            .float-format-toolbar{padding:8px 10px;gap:4px}
-            .float-format-toolbar.visible{opacity:1 !important;pointer-events:auto !important;transform:scale(1) !important;display:flex !important;animation:none}
-            .float-format-toolbar button{width:32px;height:32px;font-size:14px}
+            .float-format-toolbar:not(.visible){opacity:0 !important;pointer-events:none !important;transform:scale(0.9) !important;display:flex}
+            .float-format-toolbar{padding:6px 8px; gap:4px}
+            .float-format-toolbar.visible{opacity:1 !important;pointer-events:auto !important;transform:scale(1) !important;display:flex !important}
+            .float-format-toolbar button{width:30px;height:30px;font-size:13px}
             .fullscreen-viewer{padding:10px;}
-            .viewer-card{max-height:95vh;border-radius:22px;}
-            .viewer-header{padding:16px 20px;}
-            .viewer-body{padding:20px 16px;}
+            .viewer-card{max-height:95vh;border-radius:10px;}
+            .viewer-header{padding:14px 16px;}
+            .viewer-body{padding:18px 14px;}
+            .nav-bar{padding:10px 16px; flex-direction:column;align-items:flex-start;}
+            .header{padding:12px 16px;}
         }
     </style>
 </head>
 <body>
-    <div class="mobile-top-bar">
-        <a href="../index.php">🏠</a>
-        <h2>📝 备忘录</h2>
-        <div class="mobile-top-bar-right-buttons">
-            <span id="mobileReadOnlyBadge" style="font-size:13px;color:#f59e0b;font-weight:600;display:none;">🔒</span>
-            <button id="mobileEnterEditBtn" class="mobile-add-btn edit-mode-hidden">🔐</button>
-            <button id="mobileAddMemoBtn" class="mobile-add-btn edit-mode-hidden" style="display:none;">+</button>
-            <a href="../mindmap/index.php">🧠</a>
-        </div>
+    <div class="header">
+        <h1>📝 备忘录</h1>
     </div>
-    <div class="desktop-top-bar">
-        <div class="desktop-top-bar-left">
-            <a href="../index.php" class="btn btn-ghost">🏠 返回主页</a>
-            <h1>📝 备忘录</h1>
-            <span id="readOnlyBadge" class="read-only-badge">🔒 只读模式</span>
+    <div class="nav-bar">
+        <div class="nav-left">
+            <a href="../index.php" class="btn btn-secondary">🏠 返回主页</a>
+            <span id="readOnlyBadge" class="badge">🔒 只读模式</span>
         </div>
-        <div style="display:flex;gap:12px">
-            <button id="enterEditBtn" class="btn btn-primary">🔐 编辑</button>
+        <div class="nav-right">
+            <button id="enterEditBtn" class="btn btn-warning">🔐 进入编辑</button>
             <button id="addMemoBtn" class="btn btn-primary edit-mode-hidden">➕ 新建备忘录</button>
         </div>
     </div>
@@ -357,7 +651,7 @@ if ($action !== '') {
         <div id="emptyState" class="empty-state">
             <div class="empty-state-icon">📝</div>
             <h3>暂无备忘录</h3>
-            <p>点右上角按钮创建你的第一个备忘录吧！</p>
+            <p>点击导航栏按钮创建你的第一个备忘录吧！</p>
         </div>
     </div>
     <div id="passwordModal" class="modal-overlay" style="display:none;">
@@ -370,7 +664,7 @@ if ($action !== '') {
                 <input type="password" id="passwordInput" placeholder="请输入密码..." class="input-field">
             </div>
             <div class="modal-footer">
-                <button onclick="closeModal('passwordModal')" class="btn btn-ghost">取消</button>
+                <button onclick="closeModal('passwordModal')" class="btn btn-secondary">取消</button>
                 <button onclick="submitPassword()" class="btn btn-primary">确认进入</button>
             </div>
         </div>
@@ -389,7 +683,7 @@ if ($action !== '') {
                 </div>
             </div>
             <div class="modal-footer">
-                <button onclick="closeModal('newMemoModal')" class="btn btn-ghost">取消</button>
+                <button onclick="closeModal('newMemoModal')" class="btn btn-secondary">取消</button>
                 <button onclick="confirmNewMemo()" class="btn btn-primary">创建并打开</button>
             </div>
         </div>
@@ -415,7 +709,7 @@ if ($action !== '') {
                 <button id="deleteBtn" class="btn btn-danger edit-mode-hidden">🗑️ 删除</button>
                 <div style="flex:1"></div>
                 <button id="aiOrganizeBtn" onclick="doAiOrganize()" class="btn" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;box-shadow:0 4px 14px rgba(139,92,246,0.3)">✨ AI整理</button>
-                <button onclick="closeModal('editorModal')" class="btn btn-ghost">关闭</button>
+                <button onclick="closeModal('editorModal')" class="btn btn-secondary">关闭</button>
                 <button id="saveMemoBtn" onclick="saveMemo()" class="btn btn-primary">💾 保存</button>
             </div>
         </div>
@@ -427,7 +721,7 @@ if ($action !== '') {
                 <h2 id="viewerTitleDisplay">备忘录</h2>
                 <div class="viewer-header-right">
                     <button id="viewerEditBtn" class="btn btn-primary" onclick="goToEditFromViewer()">✏️ 编辑</button>
-                    <button class="btn btn-ghost" onclick="closeViewer()">✕ 关闭</button>
+                    <button class="btn btn-secondary" onclick="closeViewer()">✕ 关闭</button>
                 </div>
             </div>
             <div class="viewer-body">
@@ -453,7 +747,7 @@ if ($action !== '') {
                 <p style="margin-top:12px;color:#6b7280;font-size:13px;">⚠️ 注意：AI绝对不会在你没有明确要求的情况下，删除或修改你的任何原始文字！</p>
             </div>
             <div class="modal-footer">
-                <button onclick="closeModal('aiPromptModal')" class="btn btn-ghost">取消</button>
+                <button onclick="closeModal('aiPromptModal')" class="btn btn-secondary">取消</button>
                 <button id="confirmAiBtn" onclick="confirmAiOrganize()" class="btn" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;box-shadow:0 4px 14px rgba(139,92,246,0.3)">🚀 开始整理</button>
             </div>
         </div>
@@ -701,9 +995,6 @@ if ($action !== '') {
 
         function updateEditModeUI(){
             const allEditHidden=document.querySelectorAll('.edit-mode-hidden');
-            const mobileReadOnlyBadge=document.getElementById('mobileReadOnlyBadge');
-            const mobileEnterEditBtn=document.getElementById('mobileEnterEditBtn');
-            const mobileAddMemoBtn=document.getElementById('mobileAddMemoBtn');
 
             allEditHidden.forEach(e=>{
                 if(isEditMode){
@@ -714,18 +1005,8 @@ if ($action !== '') {
                 }
             });
 
-            document.getElementById('readOnlyBadge').style.display=isEditMode?'none':'block';
-            document.getElementById('enterEditBtn').style.display=isEditMode?'none':'block';
-
-            if(mobileReadOnlyBadge){
-                mobileReadOnlyBadge.style.display=isEditMode?'none':'flex';
-            }
-            if(mobileEnterEditBtn){
-                mobileEnterEditBtn.style.display=isEditMode?'none':'flex';
-            }
-            if(mobileAddMemoBtn){
-                mobileAddMemoBtn.style.display=isEditMode?'flex':'none';
-            }
+            document.getElementById('readOnlyBadge').style.display=isEditMode?'none':'inline-flex';
+            document.getElementById('enterEditBtn').style.display=isEditMode?'none':'inline-flex';
         }
 
         async function loadMemos(){
@@ -754,7 +1035,7 @@ if ($action !== '') {
                 t.innerHTML=m.content||'';
                 const txt=(t.textContent||t.innerText||'').substring(0,200);
                 const card=document.createElement('div');
-                card.className='memo-card';
+                card.className='card memo-card';
                 card.setAttribute('data-memo-id',m.id);
                 card.style.backgroundColor=m.bgColor||'#fffef0';
                 card.innerHTML=`<h3>${escapeHtml(m.title)}</h3>
@@ -946,9 +1227,7 @@ if ($action !== '') {
         }
 
         document.getElementById('enterEditBtn').onclick=()=>openModal('passwordModal');
-        document.getElementById('mobileEnterEditBtn').onclick=()=>openModal('passwordModal');
         document.getElementById('addMemoBtn').onclick=addMemo;
-        document.getElementById('mobileAddMemoBtn').onclick=addMemo;
         document.getElementById('deleteBtn').onclick=deleteMemo;
         document.getElementById('passwordInput').onkeydown=(e)=>{if(e.key==='Enter')submitPassword();};
 
