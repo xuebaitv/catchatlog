@@ -1458,6 +1458,8 @@ if ($settings['access_password_enabled']) {
                     </div>
                     <div class="search-toolbar">
                         <a href="compact.php" class="toolbar-btn" title="紧凑视图">📋</a>
+                        <a href="mindmap/index.php" class="toolbar-btn" title="思维导图">🧠</a>
+                        <a href="memo/index.php" class="toolbar-btn" title="备忘录">📝</a>
                         <a href="admin/login.php" class="toolbar-btn" title="后台管理">🔐</a>
                         <?php if ($settings['access_password_enabled'] && isset($_SESSION['access_granted']) && $_SESSION['access_granted']): ?>
                             <form method="POST" style="display: inline;">

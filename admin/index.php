@@ -66,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
 
                 if (saveChat($chatData)) {
+                    updateDataVersion();
                     $message = '对话添加成功，图片数: ' . count($images);
                 } else {
                     $message = '添加失败，请重试';
@@ -133,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
 
                 if (saveChat($chatData)) {
+                    updateDataVersion();
                     $message = '对话添加成功';
                 } else {
                     $message = '添加失败，请重试';
@@ -143,13 +145,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'delete_chat':
                 $id = $_POST['id'];
                 if (deleteChat($id)) {
+                    updateDataVersion();
                     $message = '对话删除成功';
                 } else {
                     $message = '删除失败，请重试';
                     $messageType = 'error';
                 }
                 break;
-
             case 'batch_delete_chat':
                 $ids = isset($_POST['ids']) ? json_decode($_POST['ids'], true) : [];
                 $deletedCount = 0;
@@ -159,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 if ($deletedCount > 0) {
+                    updateDataVersion();
                     $message = '成功删除 ' . $deletedCount . ' 条对话';
                 } else {
                     $message = '删除失败，请重试';
@@ -303,6 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $chat['messages'] = $messages;
                         
                         if (file_put_contents($filePath, json_encode($chat, JSON_UNESCAPED_UNICODE))) {
+                            updateDataVersion();
                             $message = '对话修改成功';
                         } else {
                             $message = '修改失败，请重试';
@@ -328,6 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($chat) {
                         $chat['group_id'] = $newGroupId;
                         if (file_put_contents($filePath, json_encode($chat, JSON_UNESCAPED_UNICODE))) {
+                            updateDataVersion();
                             $message = '会话分组修改成功';
                         } else {
                             $message = '修改失败，请重试';
@@ -347,6 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $groupName = $_POST['group_name'];
                 $groupDesc = $_POST['group_description'];
                 if (addGroup($groupName, $groupDesc)) {
+                    updateDataVersion();
                     $message = '分组添加成功';
                 } else {
                     $message = '分组添加失败，请重试';
@@ -363,6 +369,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $groups[$groupId]['name'] = $groupName;
                     $groups[$groupId]['description'] = $groupDesc;
                     if (saveGroups($groups)) {
+                        updateDataVersion();
                         $message = '分组信息修改成功';
                     } else {
                         $message = '修改失败，请重试';
@@ -377,6 +384,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'delete_group':
                 $id = $_POST['id'];
                 if (deleteGroup($id)) {
+                    updateDataVersion();
                     $message = '分组删除成功（该分组下的对话已一并删除）';
                 } else {
                     $message = '分组删除失败，请重试';
@@ -397,6 +405,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $settings['access_password'] = $accessPassword;
                 
                 if (saveSettings($settings)) {
+                    updateDataVersion();
                     $message = '页面设置保存成功';
                 } else {
                     $message = '保存失败，请重试';
@@ -419,6 +428,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $settings['ai_system_prompt'] = $aiSystemPrompt;
                 
                 if (saveSettings($settings)) {
+                    updateDataVersion();
                     $message = 'AI设置保存成功';
                 } else {
                     $message = '保存失败，请重试';
@@ -678,6 +688,7 @@ foreach ($chats as $chat) {
             <div class="nav-bar">
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-groups')">📁 分组管理</button>
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-add-chat')">💬 添加会话</button>
+                <a href="../mindmap/index.php" class="nav-btn" style="text-decoration:none;display:flex;align-items:center;">🧠 思维导图</a>
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-settings')">⚙️ 页面设置</button>
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-ai-settings')">🤖 AI设置</button>
                 <button type="button" class="nav-btn" onclick="scrollToCard('card-password')">🔐 修改密码</button>

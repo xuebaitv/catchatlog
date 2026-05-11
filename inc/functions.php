@@ -1,24 +1,45 @@
 <?php
+function updateDataVersion() {
+    $versionFile = CHAT_DIR . 'version.json';
+    $currentVersion = 1;
+    if (file_exists($versionFile)) {
+        $content = file_get_contents($versionFile);
+        $data = json_decode($content, true);
+        if ($data && isset($data['version'])) {
+            $currentVersion = intval($data['version']);
+        }
+    }
+    $newVersion = $currentVersion + 1;
+    file_put_contents($versionFile, json_encode(['version' => $newVersion, 'updated_at' => time()], JSON_UNESCAPED_UNICODE));
+    return $newVersion;
+}
+
 function getChats($groupId = null) {
     $chats = [];
     if ($handle = opendir(CHAT_DIR)) {
         while (false !== ($entry = readdir($handle))) {
-            if ($entry != "." && $entry != ".." && substr($entry, -5) === '.json' && $entry !== 'groups.json' && $entry !== 'settings.json') {
+            if ($entry != "." && $entry != ".." && substr($entry, -5) === '.json' && $entry !== 'groups.json' && $entry !== 'settings.json' && $entry !== 'version.json') {
                 $filePath = CHAT_DIR . $entry;
                 $content = file_get_contents($filePath);
+                if (empty($content) || trim($content) === '') {
+                    @unlink($filePath);
+                    continue;
+                }
                 $chat = json_decode($content, true);
-                if ($chat) {
+                if ($chat && is_array($chat) && (!empty($chat['name']) || !empty($chat['content']) || !empty($chat['messages']))) {
                     $chat['id'] = basename($entry, '.json');
                     if ($groupId === null || (isset($chat['group_id']) && $chat['group_id'] === $groupId)) {
                         $chats[] = $chat;
                     }
+                } else {
+                    @unlink($filePath);
                 }
             }
         }
         closedir($handle);
     }
     usort($chats, function($a, $b) {
-        return $b['timestamp'] - $a['timestamp'];
+        return (isset($b['timestamp']) ? $b['timestamp'] : 0) - (isset($a['timestamp']) ? $a['timestamp'] : 0);
     });
     return $chats;
 }
@@ -32,14 +53,14 @@ function saveChat($data) {
 }
 
 function deleteChat($id) {
-    if (!preg_match('/^[a-zA-Z0-9_.]+$/', $id)) {
+    $chatDirReal = realpath(CHAT_DIR);
+    if (!$chatDirReal) {
         return false;
     }
-    $filePath = CHAT_DIR . $id . '.json';
-    $realPath = realpath($filePath);
-    $realChatDir = realpath(CHAT_DIR);
-    if ($realPath && strpos($realPath, $realChatDir) === 0 && file_exists($realPath)) {
-        return unlink($realPath);
+    $filePath = CHAT_DIR . basename($id) . '.json';
+    $realFilePath = realpath($filePath);
+    if ($realFilePath && strpos($realFilePath, $chatDirReal . DIRECTORY_SEPARATOR) === 0 && file_exists($realFilePath) && is_file($realFilePath)) {
+        return unlink($realFilePath);
     }
     return false;
 }
@@ -65,12 +86,13 @@ function uploadPhoto($file) {
 }
 
 function checkAuth() {
-    return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+    return (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) || (isset($_SESSION['admin_authenticated']) && $_SESSION['admin_authenticated'] === true);
 }
 
 function login($password) {
     if ($password === ADMIN_PASSWORD) {
         $_SESSION['admin_logged_in'] = true;
+        $_SESSION['admin_authenticated'] = true;
         return true;
     }
     return false;
@@ -78,6 +100,7 @@ function login($password) {
 
 function logout() {
     unset($_SESSION['admin_logged_in']);
+    unset($_SESSION['admin_authenticated']);
     session_destroy();
 }
 
@@ -106,23 +129,20 @@ function addGroup($name, $description = '') {
 }
 
 function deleteGroup($id) {
-    if (!preg_match('/^[a-zA-Z0-9_.]+$/', $id)) {
+    $groups = getGroups();
+    if (!isset($groups[$id])) {
         return false;
     }
-    $groups = getGroups();
-    if (isset($groups[$id])) {
-        unset($groups[$id]);
-        saveGroups($groups);
+    unset($groups[$id]);
+    saveGroups($groups);
 
-        $chats = getChats();
-        foreach ($chats as $chat) {
-            if (isset($chat['group_id']) && $chat['group_id'] === $id) {
-                deleteChat($chat['id']);
-            }
+    $chats = getChats();
+    foreach ($chats as $chat) {
+        if (isset($chat['group_id']) && $chat['group_id'] === $id) {
+            deleteChat($chat['id']);
         }
-        return true;
     }
-    return false;
+    return true;
 }
 
 function getChatsGrouped() {
